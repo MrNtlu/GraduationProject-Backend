@@ -1,6 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
-
+from django.conf import settings
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from rest_framework.authtoken.models import Token
 
 class UserProfileManager(BaseUserManager):
     
@@ -50,5 +53,10 @@ class UserProfile(AbstractBaseUser, PermissionsMixin):
         return self.name
     
     def __str__(self):
-        return self.email
+        return str(self.id) + ' ' + self.email + ' ' + self.name
         
+#Login
+@receiver(post_save, sender=settings.AUTH_USER_MODEL)
+def createAuthToken(sender, instance=None, created=False, **kwargs):
+    if created:
+        Token.objects.create(user=instance)

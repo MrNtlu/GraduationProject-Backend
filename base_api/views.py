@@ -1,71 +1,83 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, viewsets
-from base_api import serializers
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.settings import api_settings
+from rest_framework.decorators import api_view
+from rest_framework.authtoken.models import Token
 
-class HelloApiView(APIView):
-    serializer_class = serializers.HelloSerializer
-    
-    def get(self, request, format=None):
-       apiView = [
-           'GET request made.',
-           'Request made by using Django', 
-           '3rd Text',
-           'Mapped manually to URLs'
-       ] 
-       
-       return Response({'message': 'Hello!', 'apiView': apiView})
-   
-   #Post via formdata
-    def post(self, request):
-       serializer = self.serializer_class(data=request.data)
-       
-       if serializer.is_valid():
-           name = serializer.validated_data.get('name')
-           message = f'Hello {name}'
-           return Response({'message':message})
-       else:
-           return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-       
-    def put(self, request, pk=None):
-        return Response({'method':'PUT'})
-    
-    def patch(self, request, pk=None):
-        return Response({'method':'PATCH'})
-    
-    def delete(self, request, pk=None):
-        return Response({'method':'DELETE'})
-    
-class HelloViewSet(viewsets.ViewSet):
-    serializer_class = serializers.HelloSerializer
+from rest_framework import status, viewsets, filters
+from base_api import serializers, models, permissions
 
-    def list(self, request):
-        viewset = [
-            "List 1",
-            "List 2",
-            "List 3"
-        ]
-        
-        return Response({'message': 'Hello!', 'viewset':viewset})
+@api_view(['GET'])
+def getUserInfo(request, parameter):
+    try:
+        userProfile = models.UserProfile.objects.get(id=parameter) 
+    except:
+        return Response({'status':status.HTTP_404_NOT_FOUND})
     
-    def create(self, request):
-        serializer = self.serializer_class(data=request.data)
-        
-        if serializer.is_valid():
-           name = serializer.validated_data.get('name')
-           message = f'Hello {name}'
-           return Response({'message':message})
-        else:
-           return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-       
-    def retrieve(self, request, pk=None):
-        return Response({'http_method':'GET', 'primary key':pk})
+    serializer = serializers.UserProfileSerializer(userProfile)
+    return Response(serializer.data)
+
+
+
+@api_view(['PUT'])
+def updateUserInfo(request, parameter, test):
+    try:
+        userProfile = models.UserProfile.objects.get(id=parameter) 
+    except:
+        return Response({'status':status.HTTP_404_NOT_FOUND})
     
-    def update(self, request, pk=None):
-        return Response({'http_method':'PUT'})
+    serializer = serializers.UserProfileSerializer(userProfile, data=request.data)
+    data = {}
+    print({
+        'parameter': parameter,
+        'test': test,
+        'request': request.data,
+        'auth_user': request.user,
+        'is_authenticated': request.user.is_authenticated 
+    })
+    if serializer.is_valid():
+        serializer.save()
+        data['success'] = "Updated successfully."
+        return Response(data=data)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+def registerUser(request):
+    data = {}
+    params = request.query_params
+    try:
+        username = params['username']
+        email = params['email']
+        name = params['name']
+        password = params['password']
+        serializer = serializers.UserProfileSerializer(data={
+            'username': username,
+            'email': email,
+            'name': name,
+            'password': password
+        })
+    except:
+        return Response({'status':status.HTTP_400_BAD_REQUEST})
+
+    if serializer.is_valid():
+        user = serializer.save()
+        data['response'] = f'{user.name} successfully registered.'
+        data['email'] = user.email
+        token = Token.objects.get(user=user).key
+        data['token'] = token
+    else:
+        data = serializer.errors
+    return Response(data=data)
+
+class UserProfileViewSet(viewsets.ModelViewSet):
+    serializer_class = serializers.UserProfileSerializer
+    queryset = models.UserProfile.objects.all()
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (permissions.UpdateOwnProfile,)
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('username', 'email',)
     
-    def partial_update(self, request, pk=None):
-        return Response({'http_method':'PATCH'})
-    
-    def destroy(self, request, pk=None):
-        return Response({'http_method':'DELETE'})
+class LoginUser(ObtainAuthToken):
+    renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES

@@ -3,9 +3,12 @@ from base_api import views
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
-router.register('viewset', views.HelloViewSet, basename='viewset')
+router.register('user', views.UserProfileViewSet, basename='user') #Because we have queryset on view
 
 urlpatterns = [
-    path('test/',views.HelloApiView.as_view()),
-    path('', include(router.urls))
+    path('login',views.LoginUser.as_view()),
+    path('register',views.registerUser, name='register'),
+    path('user/<parameter>', views.getUserInfo, name='user'),
+    path('user/<parameter>/edit/<test>', views.updateUserInfo, name='user'),
+    path('', include(router.urls)),
 ]
