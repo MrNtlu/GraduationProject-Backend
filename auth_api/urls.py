@@ -1,5 +1,5 @@
 from django.urls import path, include
-from base_api import views
+from auth_api import views
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()

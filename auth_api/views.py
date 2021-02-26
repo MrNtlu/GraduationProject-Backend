@@ -7,7 +7,7 @@ from rest_framework.decorators import api_view
 from rest_framework.authtoken.models import Token
 
 from rest_framework import status, viewsets, filters
-from base_api import serializers, models, permissions
+from auth_api import serializers, models, permissions
 
 @api_view(['GET'])
 def getUserInfo(request, parameter):

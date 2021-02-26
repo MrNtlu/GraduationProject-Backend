@@ -39,7 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework.authtoken',
-    'base_api',
+    'auth_api',
+    'feed_api'
 ]
 
 MIDDLEWARE = [
@@ -76,16 +77,23 @@ WSGI_APPLICATION = 'graduation_project.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
 
+DB_NAME = "graduation_project"
+DB_USER = "django"
+DB_PASSWORD = "password"
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': DB_NAME,
+        'USER': DB_USER,
+        'PASSWORD': DB_PASSWORD,
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'base_api.auth.TokenAuthGet',
+        'auth_api.auth.TokenAuthGet',
     ],
 }
 
@@ -128,4 +136,4 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-AUTH_USER_MODEL = 'base_api.UserProfile'
+AUTH_USER_MODEL = 'auth_api.UserProfile'
