@@ -1,4 +1,3 @@
-from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.views import ObtainAuthToken
@@ -16,8 +15,11 @@ def getUserInfo(request, parameter):
     except:
         return Response({'status':status.HTTP_404_NOT_FOUND})
     
-    serializer = serializers.UserProfileSerializer(userProfile)
-    return Response(serializer.data)
+    if request.user.is_authenticated:
+        serializer = serializers.UserProfileSerializer(userProfile)
+        return Response(serializer.data)
+    else:
+        return Response({'status':status.HTTP_401_UNAUTHORIZED})
 
 
 

@@ -5,6 +5,12 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from rest_framework.authtoken.models import Token
 
+def upload_location(instance, filename, **kwargs):
+	file_path = 'profile/{user_id}'.format(
+			user_id=str(instance.id)
+		) 
+	return file_path
+
 class UserProfileManager(BaseUserManager):
     
     def create_user(self, email, username, name, password=None):
@@ -37,7 +43,7 @@ class UserProfile(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(max_length=255, unique=True)
     name = models.CharField(max_length=255)
     isActive = models.BooleanField(default=True)
-    image = models.ImageField(upload_to='profile')
+    image = models.ImageField(upload_to=upload_location)
     userType = models.IntegerField(choices=UserType.choices, default=UserType.User)
     is_staff = models.BooleanField(default=False)
 
