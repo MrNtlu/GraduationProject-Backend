@@ -95,6 +95,7 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'auth_api.auth.TokenAuthGet',
     ],
+    'DATETIME_FORMAT': "%Y/%m/%d - %H:%M:%S",
 }
 
 
