@@ -15,6 +15,7 @@ def getFeed(request, parameter):
     serializer = serializers.FeedSerializer(feed)
     return Response(serializer.data)
 
+
 @api_view(['POST'])
 def postFeed(request):
     serializer = serializers.FeedSerializer(data=request.data, 
@@ -27,6 +28,18 @@ def postFeed(request):
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+def getComments(request, parameter):
+    try:
+        feed = models.Feed.objects.get(id=parameter)
+    except:
+        return Response({'status':status.HTTP_404_NOT_FOUND})
+    
+    serializer = serializers.FeedSerializer(feed)
+    return Response(serializer.data)
+
 
 class FeedViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.FeedSerializer

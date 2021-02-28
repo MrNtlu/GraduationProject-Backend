@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from feed_api import models
+from auth_api.serializers import UserProfileSerializer
 
 class ImageSerializer(serializers.ModelSerializer):
     class Meta:
@@ -8,11 +9,11 @@ class ImageSerializer(serializers.ModelSerializer):
 
 class FeedSerializer(serializers.ModelSerializer):
     images = ImageSerializer(many=True, required=False)
-    
+    author = UserProfileSerializer(required=False)
     type = serializers.CharField(source='get_type_display') 
     class Meta:
         model = models.Feed
-        fields = ['id','message','type', 'latitude', 'longitude', 'locationName', 'images']
+        fields = ['id','author','message','type','postedDate', 'latitude', 'longitude', 'locationName', 'images']
     
     def create(self, validated_data):
         images = self.context['images']
