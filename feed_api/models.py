@@ -5,7 +5,7 @@ from django.contrib.contenttypes.models import ContentType
 import uuid
 from django.dispatch import receiver
 from django.db.models.signals import post_delete
-import os
+from django.db.models import Func, F
 
 def upload_location(instance, filename, **kwargs):
     file_path = 'feed/{uuid}/{filename}'.format(
@@ -33,6 +33,39 @@ class Vote(models.Model):
     content_object = GenericForeignKey()
     
     
+class WithDistanceManager(models.Manager):
+    def with_distance(self, latitude, longitude):
+        """
+        Returns a QuerySet of locations annotated with their distance from the
+        given point. This can then be filtered.
+        Usage:
+            Foo.objects.within(lat, lon).filter(distance__lt=10).count()
+        @see http://stackoverflow.com/a/31715920/1373318
+        """
+        class Sin(Func):
+            function = 'SIN'
+        class Cos(Func):
+            function = 'COS'
+        class Acos(Func):
+            function = 'ACOS'
+        class Radians(Func):
+            function = 'RADIANS'
+
+        radlat = Radians(latitude) # given latitude
+        radlong = Radians(longitude) # given longitude
+        radflat = Radians(F('latitude'))
+        radflong = Radians(F('longitude'))
+
+        # Note 3959.0 is for miles. Use 6371 for kilometers
+        Expression = 6371.0 * Acos(Cos(radlat) * Cos(radflat) *
+                                   Cos(radflong - radlong) +
+                                   Sin(radlat) * Sin(radflat))
+
+        return self.get_queryset()\
+            .exclude(latitude=None)\
+            .exclude(longitude=None)\
+            .annotate(distance=Expression)
+    
 #On Delete reference https://stackoverflow.com/questions/38388423/what-does-on-delete-do-on-django-models
 class Feed(models.Model):
     class FeedType(models.IntegerChoices):
@@ -51,6 +84,8 @@ class Feed(models.Model):
     latitude = models.FloatField()
     longitude = models.FloatField()
     locationName = models.TextField()
+    
+    objects = WithDistanceManager()
     
     def getVoteCount(self):
         print(self.likes.all())

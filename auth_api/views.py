@@ -23,27 +23,27 @@ def getUserInfo(request, parameter):
 
 
 
-@api_view(['PUT'])
-def updateUserInfo(request, parameter, test):
-    try:
-        userProfile = models.UserProfile.objects.get(id=parameter) 
-    except:
-        return Response({'status':status.HTTP_404_NOT_FOUND})
+# @api_view(['PUT'])
+# def updateUserInfo(request, parameter, test):
+#     try:
+#         userProfile = models.UserProfile.objects.get(id=parameter) 
+#     except:
+#         return Response({'status':status.HTTP_404_NOT_FOUND})
     
-    serializer = serializers.UserProfileSerializer(userProfile, data=request.data)
-    data = {}
-    print({
-        'parameter': parameter,
-        'test': test,
-        'request': request.data,
-        'auth_user': request.user,
-        'is_authenticated': request.user.is_authenticated 
-    })
-    if serializer.is_valid():
-        serializer.save()
-        data['success'] = "Updated successfully."
-        return Response(data=data)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#     serializer = serializers.UserProfileSerializer(userProfile, data=request.data)
+#     data = {}
+#     print({
+#         'parameter': parameter,
+#         'test': test,
+#         'request': request.data,
+#         'auth_user': request.user,
+#         'is_authenticated': request.user.is_authenticated 
+#     })
+#     if serializer.is_valid():
+#         serializer.save()
+#         data['success'] = "Updated successfully."
+#         return Response(data=data)
+#     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
 def registerUser(request):

@@ -2,14 +2,15 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework import viewsets, filters, status
 from rest_framework.authentication import TokenAuthentication
-from rest_framework.permissions import IsAuthenticated
 from feed_api import models, serializers
-from rest_framework.utils import json
+#from rest_framework.permissions import IsAuthenticated
+from django.db.models.expressions import RawSQL
+
+import math
 
 ### FEED API
 
 @api_view(['GET'])
-#@permission_classes([IsAuthenticated])
 def getFeed(request, parameter):
     if request.user.is_authenticated:
         try:
@@ -22,12 +23,43 @@ def getFeed(request, parameter):
         return handleResponseMessage(status.HTTP_200_OK,
                               'Successfully retrieved feed.',
                               serializer.data)
-        #return Response(serializer.data)
     else:
         return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
 
+
+@api_view(['GET'])
+def getFeedByLocation(request):
+    if request.user.is_authenticated:
+        queryLat = request.GET.get('lat')
+        queryLong = request.GET.get('long')
+        distance = request.GET.get('distance')
+        
+        if (queryLat is None) or (queryLong is None) or (distance is None):
+            return handleResponseMessage(status.HTTP_400_BAD_REQUEST,'Missing params.')
+        else:
+            distanceFormula = "6371 * acos(least(greatest(\
+            cos(radians(%s)) * cos(radians(latitude)) \
+            * cos(radians(longitude) - radians(%s)) + \
+            sin(radians(%s)) * sin(radians(latitude)) \
+            , -1), 1))"
+            distanceRawSQL = RawSQL(
+                distanceFormula,
+                (queryLat, queryLong, queryLat)
+            )
+            nearbyFeeds = models.Feed.objects.all() \
+            .annotate(distance=distanceRawSQL)\
+            .order_by('distance')
+            nearbyFeeds = nearbyFeeds.filter(distance__lt=distance)
+            serializer = serializers.FeedSerializer(nearbyFeeds, many=True)
+            
+            return handleResponseMessage(status.HTTP_200_OK,
+                                         f'Successfully received feeds in range of {distance} KM.',
+                                         serializer.data)
+    else:
+        return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
+
+
 @api_view(['POST'])
-#@permission_classes([IsAuthenticated])
 def postFeed(request):
     if request.user.is_authenticated:
         serializer = serializers.FeedSerializer(data=request.data, 
@@ -41,16 +73,13 @@ def postFeed(request):
             return handleResponseMessage(status.HTTP_201_CREATED,
                               'Successfully created post.',
                               serializer.data)
-            #return Response(serializer.data, status=status.HTTP_201_CREATED)
         return handleResponseMessage(status.HTTP_400_BAD_REQUEST, 'Invalid post.')
-        #return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     else:
         return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
     
 ### COMMENT API
 
 @api_view(['GET'])
-#@permission_classes([IsAuthenticated])
 def getComments(request, parameter):
     if request.user.is_authenticated:
         try:
@@ -64,12 +93,11 @@ def getComments(request, parameter):
         return handleResponseMessage(status.HTTP_200_OK,
                               'Successfully queried comments.',
                               serializer.data)
-        #return Response(serializer.data)
     else:
         return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
 
+
 @api_view(['POST'])
-#@permission_classes([IsAuthenticated])
 def postComment(request, parameter):
     if request.user.is_authenticated:
         try:
@@ -77,7 +105,6 @@ def postComment(request, parameter):
         except:
             return handleResponseMessage(status.HTTP_404_NOT_FOUND,
                                          "Couldn't find the corresponding Feed.")
-            #return Response({'status':status.HTTP_404_NOT_FOUND})
         
         serializer = serializers.CommentSerializer(data=request.data, 
                                                 context={
@@ -90,11 +117,10 @@ def postComment(request, parameter):
             handleResponseMessage(status.HTTP_201_CREATED,
                                   'Successfully posted commet.',
                                   serializer.data)
-            #return Response(serializer.data, status=status.HTTP_201_CREATED)
         return handleResponseMessage(status.HTTP_400_BAD_REQUEST, 'Invalid comment.')
-        #return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     else:
         return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
+
 
 def handleResponseMessage(status, message, data=None):
     response = {}
@@ -104,6 +130,22 @@ def handleResponseMessage(status, message, data=None):
     response['data'] = data
         
     return Response(response)
+
+
+def distance(origin, destination):
+    lat1, lon1 = origin
+    lat2, lon2 = destination
+    radius = 6371 # km
+
+    dlat = math.radians(lat2-lat1)
+    dlon = math.radians(lon2-lon1)
+    a = math.sin(dlat/2) * math.sin(dlat/2) + math.cos(math.radians(lat1)) \
+        * math.cos(math.radians(lat2)) * math.sin(dlon/2) * math.sin(dlon/2)
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+    d = radius * c
+
+    return d
+
 
 class FeedViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.FeedSerializer

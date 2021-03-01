@@ -9,6 +9,7 @@ urlpatterns = [
     path('feed/<parameter>/',views.getFeed, name='feed'),
     path('feed/<parameter>/comments',views.getComments, name='comments'),
     path('feed/<parameter>/create',views.postComment, name='commentcreate'),
+    path('feed/location',views.getFeedByLocation, name='feedsbylocation'),
     path('create/feed', views.postFeed, name='create'),
     path('', include(router.urls)),
 ]
