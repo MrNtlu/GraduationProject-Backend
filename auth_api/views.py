@@ -4,24 +4,108 @@ from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.settings import api_settings
 from rest_framework.decorators import api_view
 from rest_framework.authtoken.models import Token
-
+from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import status, viewsets, filters
 from auth_api import serializers, models, permissions
+from collections import OrderedDict
+from graduation_project.base_response import handleResponseMessage
 
 @api_view(['GET'])
 def getUserInfo(request, parameter):
-    try:
-        userProfile = models.UserProfile.objects.get(id=parameter) 
-    except:
-        return Response({'status':status.HTTP_404_NOT_FOUND})
-    
     if request.user.is_authenticated:
+        try:
+            userProfile = models.UserProfile.objects.get(id=parameter) 
+        except:
+            return handleResponseMessage(status.HTTP_404_NOT_FOUND,'User not found.')
+    
         serializer = serializers.UserProfileSerializer(userProfile)
-        return Response(serializer.data)
+        return handleResponseMessage(status.HTTP_200_OK,
+                              'Successfully received User info.',
+                              serializer.data)
     else:
-        return Response({'status':status.HTTP_401_UNAUTHORIZED})
+        return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
+
+class LoginUser(ObtainAuthToken):
+    renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES
+
+@api_view(['POST'])
+def registerUser(request):
+    data = {}
+    params = request.query_params
+    try:
+        username = params['username']
+        email = params['email']
+        name = params['name']
+        password = params['password']
+        serializer = serializers.UserProfileSerializer(data={
+            'username': username,
+            'email': email,
+            'name': name,
+            'password': password
+        })
+    except:
+        return handleResponseMessage(status.HTTP_400_BAD_REQUEST,'Invalid parameters.')
+
+    if serializer.is_valid():
+        user = serializer.save()
+        data['email'] = user.email
+        token = Token.objects.get(user=user).key
+        data['token'] = token
+        return handleResponseMessage(status.HTTP_200_OK,
+                              f'{user.name} successfully registered.',
+                              data)
+    else:
+        data = serializer.errors
+        return handleResponseMessage(status.HTTP_400_BAD_REQUEST,
+                                "Couldn't registered.",
+                                data)
 
 
+@api_view(['POST'])
+def followUser(request, parameter):
+    if request.user.is_authenticated:
+        try:
+            #User that will be (followed/unfollowed)'s profile
+            userProfile = models.UserProfile.objects.get(id=parameter) 
+        except:
+            return handleResponseMessage(status.HTTP_404_NOT_FOUND,'User not found.')
+        
+        # Loggedin Users serializer     
+        serializer = serializers.UserProfileSerializer(userProfile)
+        
+        if int(request.user.id) == int(parameter):
+            return handleResponseMessage(status.HTTP_400_BAD_REQUEST,
+                                         'You cannot follow yourself.')
+        else:
+            filteredList = list(filter(lambda item: request.user.id == item['followerUser'], serializer.data.get('followings')))
+
+            if len(filteredList) > 0:
+                try:
+                    instance = models.UserFollowing.objects.get(pk=filteredList[0].get('id'))
+                    instance.delete()
+                except ObjectDoesNotExist:
+                    return handleResponseMessage(status.HTTP_404_NOT_FOUND,
+                                                "You cannot unfollow a person who you don't follow.")
+                except:
+                    return handleResponseMessage(status.HTTP_404_NOT_FOUND,
+                                                 "Error occured while deleting the object.")
+
+                return handleResponseMessage(status.HTTP_200_OK,
+                                            f'Successfully unfollowed',
+                                            f'{request.user.name} unfollowed {userProfile.name}')
+            else:
+                following = models.UserFollowing.objects.create(user=userProfile, followerUser=request.user)
+                return handleResponseMessage(status.HTTP_200_OK,
+                                                'Successfully Followed',
+                                                f'{request.user.name} follows {userProfile.name}')
+
+    else:
+        return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
+
+### MISSING APIs ###
+# UPLOAD IMAGE
+# UPDATE PROFILE
+# 
 
 # @api_view(['PUT'])
 # def updateUserInfo(request, parameter, test):
@@ -45,34 +129,6 @@ def getUserInfo(request, parameter):
 #         return Response(data=data)
 #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(['POST'])
-def registerUser(request):
-    data = {}
-    params = request.query_params
-    try:
-        username = params['username']
-        email = params['email']
-        name = params['name']
-        password = params['password']
-        serializer = serializers.UserProfileSerializer(data={
-            'username': username,
-            'email': email,
-            'name': name,
-            'password': password
-        })
-    except:
-        return Response({'status':status.HTTP_400_BAD_REQUEST})
-
-    if serializer.is_valid():
-        user = serializer.save()
-        data['response'] = f'{user.name} successfully registered.'
-        data['email'] = user.email
-        token = Token.objects.get(user=user).key
-        data['token'] = token
-    else:
-        data = serializer.errors
-    return Response(data=data)
-
 class UserProfileViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.UserProfileSerializer
     queryset = models.UserProfile.objects.all()
@@ -81,5 +137,8 @@ class UserProfileViewSet(viewsets.ModelViewSet):
     filter_backends = (filters.SearchFilter,)
     search_fields = ('username', 'email',)
     
-class LoginUser(ObtainAuthToken):
-    renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES
+
+class UserFollowingViewSet(viewsets.ModelViewSet):
+    permission_classes = (permissions.permissions.IsAuthenticatedOrReadOnly,)
+    serializer_class = serializers.FollowingSerializer
+    queryset = models.UserFollowing.objects.all()

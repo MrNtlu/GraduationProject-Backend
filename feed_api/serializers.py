@@ -17,9 +17,11 @@ class VoteObjectRelatedField(serializers.RelatedField):
 class ImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Image
-        fields = ['image']    
-
-
+        fields = ['image']
+            
+### !!!!!!!!!!!!!!!!!!!!!!
+### Type is not serialized
+### !!!!!!!!!!!!!!!!!!!!!!
 class FeedSerializer(serializers.ModelSerializer):
     images = ImageSerializer(many=True, required=False)
     author = UserProfileSerializer(required=False)

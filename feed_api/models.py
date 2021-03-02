@@ -33,39 +33,6 @@ class Vote(models.Model):
     content_object = GenericForeignKey()
     
     
-class WithDistanceManager(models.Manager):
-    def with_distance(self, latitude, longitude):
-        """
-        Returns a QuerySet of locations annotated with their distance from the
-        given point. This can then be filtered.
-        Usage:
-            Foo.objects.within(lat, lon).filter(distance__lt=10).count()
-        @see http://stackoverflow.com/a/31715920/1373318
-        """
-        class Sin(Func):
-            function = 'SIN'
-        class Cos(Func):
-            function = 'COS'
-        class Acos(Func):
-            function = 'ACOS'
-        class Radians(Func):
-            function = 'RADIANS'
-
-        radlat = Radians(latitude) # given latitude
-        radlong = Radians(longitude) # given longitude
-        radflat = Radians(F('latitude'))
-        radflong = Radians(F('longitude'))
-
-        # Note 3959.0 is for miles. Use 6371 for kilometers
-        Expression = 6371.0 * Acos(Cos(radlat) * Cos(radflat) *
-                                   Cos(radflong - radlong) +
-                                   Sin(radlat) * Sin(radflat))
-
-        return self.get_queryset()\
-            .exclude(latitude=None)\
-            .exclude(longitude=None)\
-            .annotate(distance=Expression)
-    
 #On Delete reference https://stackoverflow.com/questions/38388423/what-does-on-delete-do-on-django-models
 class Feed(models.Model):
     class FeedType(models.IntegerChoices):
@@ -77,16 +44,13 @@ class Feed(models.Model):
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     message = models.TextField(blank=False, null=False)
     type = models.IntegerField(choices=FeedType.choices, default=FeedType.Feed)
-    #comments = models.ManyToManyField(Comment, blank=True)
     likes = GenericRelation(Vote)
     postedDate = models.DateTimeField(auto_now_add=True, verbose_name="date posted")
     updatedDate = models.DateTimeField(auto_now=True, verbose_name="date updated")
     latitude = models.FloatField()
     longitude = models.FloatField()
     locationName = models.TextField()
-    
-    objects = WithDistanceManager()
-    
+        
     def getVoteCount(self):
         print(self.likes.all())
         
@@ -108,6 +72,10 @@ class Comment(models.Model):
     updatedDate = models.DateTimeField(auto_now=True, verbose_name="date updated")
     likes = GenericRelation(Vote)
     feed = models.ForeignKey(Feed, on_delete=models.CASCADE, related_name="comments")
+    
+    def __str__(self):
+        return self.author,': ',self.message
+    
 
 class Image(models.Model):
     image = models.ImageField(upload_to=upload_location)

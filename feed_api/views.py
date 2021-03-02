@@ -6,6 +6,7 @@ from feed_api import models, serializers
 #from rest_framework.permissions import IsAuthenticated
 from django.db.models.expressions import RawSQL
 
+from graduation_project.base_response import handleResponseMessage
 import math
 
 ### FEED API
@@ -111,25 +112,14 @@ def postComment(request, parameter):
                                                     'user': request.user,
                                                     'feed': feed
                                                     })
-        data = {}
         if serializer.is_valid():
             serializer.save()
-            handleResponseMessage(status.HTTP_201_CREATED,
-                                  'Successfully posted commet.',
+            return handleResponseMessage(status.HTTP_201_CREATED,
+                                  'Successfully posted comment.',
                                   serializer.data)
         return handleResponseMessage(status.HTTP_400_BAD_REQUEST, 'Invalid comment.')
     else:
         return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
-
-
-def handleResponseMessage(status, message, data=None):
-    response = {}
-
-    response['status'] = status
-    response['message'] = message
-    response['data'] = data
-        
-    return Response(response)
 
 
 def distance(origin, destination):

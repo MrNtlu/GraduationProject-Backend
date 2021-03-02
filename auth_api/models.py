@@ -11,6 +11,7 @@ def upload_location(instance, filename, **kwargs):
 		) 
 	return file_path
 
+
 class UserProfileManager(BaseUserManager):
     
     def create_user(self, email, username, name, password=None):
@@ -32,6 +33,7 @@ class UserProfileManager(BaseUserManager):
         user.save(using=self._db)
         
         return user
+
 
 class UserProfile(AbstractBaseUser, PermissionsMixin):
     class UserType(models.IntegerChoices):
@@ -61,8 +63,26 @@ class UserProfile(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return str(self.id) + ' ' + self.email + ' ' + self.name
         
+        
 #Login
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def createAuthToken(sender, instance=None, created=False, **kwargs):
     if created:
         Token.objects.create(user=instance)
+      
+        
+class UserFollowing(models.Model):
+    # Followings = Takip Edilen
+    user = models.ForeignKey(UserProfile, related_name='followings', on_delete=models.CASCADE)
+    followerUser = models.ForeignKey(UserProfile, related_name='followers', on_delete=models.CASCADE)
+    created = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'followerUser'], name='uniqueConstraint')
+        ]
+        ordering = ["-created"]
+        
+    def __str__(self):
+        return f'{self.followerUser} follows {self.user}'
+    
