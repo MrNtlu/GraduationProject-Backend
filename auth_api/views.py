@@ -1,6 +1,6 @@
 from rest_framework.response import Response
 from rest_framework.authentication import TokenAuthentication
-from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.authtoken.views import ObtainAuthToken, AuthTokenSerializer
 from rest_framework.settings import api_settings
 from rest_framework.decorators import api_view
 from rest_framework.authtoken.models import Token
@@ -27,11 +27,33 @@ def getUserInfo(request, parameter):
 
 class LoginUser(ObtainAuthToken):
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES
+    serializer_class = AuthTokenSerializer
+    
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+        
+        if serializer.is_valid():
+            user = serializer.validated_data['user']
+            token, created = Token.objects.get_or_create(user=serializer.validated_data['user'])
+            return handleResponseMessage(status.HTTP_200_OK,
+                                         'Successfully logged in.',
+                                         {
+                                             "token": token.key,
+                                             "id": user.pk
+                                         })
+        else:
+            error_message = ""
+            try:
+                error_message = serializer.errors["non_field_errors"][0]
+            except:
+                error_message = "Unable to login. Please check credentials."
+            return handleResponseMessage(status.HTTP_400_BAD_REQUEST,error_message)
+            
 
 @api_view(['POST'])
 def registerUser(request):
     data = {}
-    params = request.query_params
+    params = request.data
     try:
         username = params['username']
         email = params['email']
@@ -55,10 +77,17 @@ def registerUser(request):
                               f'{user.name} successfully registered.',
                               data)
     else:
-        data = serializer.errors
-        return handleResponseMessage(status.HTTP_400_BAD_REQUEST,
-                                "Couldn't registered.",
-                                data)
+        isEmailInvalid = serializer.errors.get('email')
+        isUsernameInvalid = serializer.errors.get('username')
+        error_message = "Error occured, please try again."
+        if isEmailInvalid and isUsernameInvalid:
+            error_message = "Username and Email already exists."
+        elif isEmailInvalid:
+            error_message = "Email already exists."
+        elif isUsernameInvalid:
+            error_message = "Username already exists."
+            
+        return handleResponseMessage(status.HTTP_400_BAD_REQUEST, error_message)
 
 
 @api_view(['POST'])
