@@ -24,6 +24,38 @@ def getUserInfo(request, parameter):
                               serializer.data)
     else:
         return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
+    
+@api_view(['GET'])
+def getUserFollowers(request, parameter):
+    if request.user.is_authenticated:
+        try:
+            user = models.UserProfile.objects.get(id=parameter) 
+        except:
+            return handleResponseMessage(status.HTTP_404_NOT_FOUND,'User not found.')
+    
+        followers = models.UserFollowing.objects.filter(user=user)
+        serializer = serializers.FollowerSerializer(followers, many=True)
+        return handleResponseMessage(status.HTTP_200_OK,
+                              'Successfully received follower info.',
+                              serializer.data)
+    else:
+        return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
+    
+@api_view(['GET'])
+def getUserFollowings(request, parameter):
+    if request.user.is_authenticated:
+        try:
+            user = models.UserProfile.objects.get(id=parameter) 
+        except:
+            return handleResponseMessage(status.HTTP_404_NOT_FOUND,'User not found.')
+    
+        followings = models.UserFollowing.objects.filter(user=user)
+        serializer = serializers.FollowingSerializer(followings, many=True)
+        return handleResponseMessage(status.HTTP_200_OK,
+                              'Successfully received User info.',
+                              serializer.data)
+    else:
+        return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
 
 class LoginUser(ObtainAuthToken):
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES
@@ -77,6 +109,7 @@ def registerUser(request):
                               f'{user.name} successfully registered.',
                               data)
     else:
+        print(serializer.errors)
         isEmailInvalid = serializer.errors.get('email')
         isUsernameInvalid = serializer.errors.get('username')
         error_message = "Error occured, please try again."
