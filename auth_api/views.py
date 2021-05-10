@@ -49,7 +49,7 @@ def getUserFollowings(request, parameter):
         except:
             return handleResponseMessage(status.HTTP_404_NOT_FOUND,'User not found.')
     
-        followings = models.UserFollowing.objects.filter(user=user)
+        followings = models.UserFollowing.objects.filter(followerUser=user)
         serializer = serializers.FollowingSerializer(followings, many=True)
         return handleResponseMessage(status.HTTP_200_OK,
                               'Successfully received User info.',

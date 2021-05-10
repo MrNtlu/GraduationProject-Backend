@@ -47,13 +47,13 @@ class UserProfileSerializer(serializers.ModelSerializer):
             instance.set_password(password)
     
 class FollowerSerializer(serializers.ModelSerializer):
-    user = UserProfileSerializer()
+    user = UserProfileSerializer(source="followerUser")
     class Meta:
         model = models.UserFollowing
         fields = ("id", "user", "created")
         
 class FollowingSerializer(serializers.ModelSerializer):
-    followerUser = UserProfileSerializer()
+    user = UserProfileSerializer()
     class Meta:
         model = models.UserFollowing
-        fields = ("id", "followerUser", "created")
+        fields = ("id", "user", "created")
