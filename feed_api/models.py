@@ -14,25 +14,6 @@ def upload_location(instance, filename, **kwargs):
 		) 
     return file_path
 
-
-#https://www.django-rest-framework.org/api-guide/relations/#generic-relationships
-#Generic Relations https://simpleisbetterthancomplex.com/tutorial/2016/10/13/how-to-use-generic-relations.html
-class Vote(models.Model):
-    UP_VOTE = 'U'
-    DOWN_VOTE = 'D'
-    VOTE_TYPES = (
-        (UP_VOTE, 'Up Vote'),
-        (DOWN_VOTE, 'Down Vote')
-    )
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    activity_type = models.CharField(max_length=1, choices=VOTE_TYPES)
-    
-    #Mandatory fields for generic relation
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
-    object_id = models.PositiveIntegerField()
-    content_object = GenericForeignKey()
-    
-    
 #On Delete reference https://stackoverflow.com/questions/38388423/what-does-on-delete-do-on-django-models
 class Feed(models.Model):
     class FeedType(models.IntegerChoices):
@@ -44,15 +25,11 @@ class Feed(models.Model):
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     message = models.TextField(blank=False, null=False)
     type = models.IntegerField(choices=FeedType.choices, default=FeedType.Feed)
-    likes = GenericRelation(Vote)
     postedDate = models.DateTimeField(auto_now_add=True, verbose_name="date posted")
     updatedDate = models.DateTimeField(auto_now=True, verbose_name="date updated")
     latitude = models.FloatField()
     longitude = models.FloatField()
     locationName = models.TextField()
-        
-    def getVoteCount(self):
-        print(self.likes.all())
         
     def __str__(self):
         return str(self.id) + ' ' + self.author.name + ': ' + self.message
@@ -62,7 +39,17 @@ class Feed(models.Model):
             storage, path = image.image.storage, image.image.path
             storage.delete(path)
         super(Feed, self).delete(*args, **kwargs)
-            
+        
+class FeedVote(models.Model):
+    class VoteType(models.IntegerChoices):
+        UpVote = 1
+        DownVote = -1
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, unique=True)
+    vote = models.IntegerField(choices=VoteType.choices, default=VoteType.UpVote)
+    feed = models.ForeignKey(Feed, on_delete=models.CASCADE, related_name="votes")
+    
+    def __str__(self):
+        return str(self.user.name) + ' voted ' + str(self.feed.id) + ' vote type is ' + str(self.vote)
     
 class Comment(models.Model):
     id = models.AutoField(primary_key=True)
@@ -70,7 +57,7 @@ class Comment(models.Model):
     message = models.TextField(blank=False, null=False)
     postedDate = models.DateTimeField(auto_now_add=True, verbose_name="date posted")
     updatedDate = models.DateTimeField(auto_now=True, verbose_name="date updated")
-    likes = GenericRelation(Vote)
+    #likes = GenericRelation(Vote)
     feed = models.ForeignKey(Feed, on_delete=models.CASCADE, related_name="comments")
     
     def __str__(self):

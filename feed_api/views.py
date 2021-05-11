@@ -29,6 +29,18 @@ def getFeed(request, parameter):
 
 
 @api_view(['GET'])
+def getUserFeed(request, parameter):
+    if request.user.is_authenticated:
+        feeds = models.Feed.objects.filter(author__id=parameter)
+        serializer = serializers.FeedSerializer(feeds, many=True)
+        return handleResponseMessage(status.HTTP_200_OK,
+                                         f'Successfully received data.',
+                                         serializer.data)
+    else:
+        return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
+        
+
+@api_view(['GET'])
 def getFeedByLocation(request):
     if request.user.is_authenticated:
         queryLat = request.GET.get('lat')

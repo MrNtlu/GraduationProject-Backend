@@ -7,6 +7,7 @@ router.register('feedlist', views.FeedViewSet, basename='feeds')
 
 urlpatterns = [
     path('feed/<parameter>/',views.getFeed, name='feed'),
+    path('feed/user/<parameter>/',views.getUserFeed, name='userfeed'),
     path('feed/<parameter>/comments',views.getComments, name='comments'),
     path('feed/<parameter>/create',views.postComment, name='commentcreate'),
     path('feed/location',views.getFeedByLocation, name='feedsbylocation'),
