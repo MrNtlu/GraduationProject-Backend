@@ -120,7 +120,6 @@ def postFeedVote(request, parameter):
                 return handleResponseMessage(status.HTTP_404_NOT_FOUND,
                                             "Couldn't find the corresponding vote.")
                 
-            #feedVote.vote = models.FeedVote.VoteType(request.data['vote'])
             serializer = serializers.FeedVoteSerializer(feedVote, data=request.data)
             if serializer.is_valid():
                 serializer.save()
