@@ -90,6 +90,57 @@ def postFeed(request):
     else:
         return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
     
+@api_view(['POST','PUT', 'DELETE'])
+def postFeedVote(request, parameter):
+    if request.user.is_authenticated:
+        try:
+            feed = models.Feed.objects.get(id=parameter)
+        except:
+            return handleResponseMessage(status.HTTP_404_NOT_FOUND,
+                                         "Couldn't find the corresponding Feed.")
+        
+        if request.method == 'POST':
+            serializer = serializers.FeedVoteSerializer(data=request.data, 
+                                                    context={
+                                                        'feed': feed,
+                                                        'user': request.user
+                                                        })
+            
+            if serializer.is_valid():
+                serializer.save()
+                return handleResponseMessage(status.HTTP_201_CREATED,
+                                'Successfully voted.',
+                                serializer.data)
+            return handleResponseMessage(status.HTTP_400_BAD_REQUEST, 'Invalid vote.')
+        
+        elif request.method == 'PUT':
+            try:
+                feedVote = models.FeedVote.objects.get(feed=feed, user=request.user)
+            except:
+                return handleResponseMessage(status.HTTP_404_NOT_FOUND,
+                                            "Couldn't find the corresponding vote.")
+                
+            #feedVote.vote = models.FeedVote.VoteType(request.data['vote'])
+            serializer = serializers.FeedVoteSerializer(feedVote, data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return handleResponseMessage(status.HTTP_200_OK,
+                                'Successfully updated.',
+                                serializer.data)
+            return handleResponseMessage(status.HTTP_400_BAD_REQUEST, 'Invalid vote.')
+        
+        elif request.method == 'DELETE':            
+            try:
+                feedVote = models.FeedVote.objects.get(feed=feed, user=request.user)
+            except:
+                return handleResponseMessage(status.HTTP_404_NOT_FOUND,
+                                            "Couldn't find the corresponding vote.")
+            feedVote.delete()
+            return handleResponseMessage(status.HTTP_200_OK,
+                                'Successfully deleted.')
+    else:
+        return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
+    
 ### COMMENT API
 
 @api_view(['GET'])

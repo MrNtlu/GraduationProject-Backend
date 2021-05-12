@@ -3,11 +3,23 @@ from feed_api import models
 from auth_api.serializers import UserProfileSerializer
 
 class FeedVoteSerializer(serializers.ModelSerializer):
-    user = UserProfileSerializer()
-    vote = serializers.CharField(source='get_vote_display')
+    user = UserProfileSerializer(required=False)
+    vote = serializers.ChoiceField(choices=models.FeedVote.VoteType)
+    
     class Meta:
         model = models.FeedVote
         fields = ['user', 'vote']
+        
+    def create(self, validated_data):
+        user = self.context['user']
+        feed = self.context['feed']
+        
+        feedVote = models.FeedVote.objects.create(
+            user = user,
+            feed = feed,
+            vote = validated_data['vote']
+        )
+        return feedVote
 
 
 class ImageSerializer(serializers.ModelSerializer):
