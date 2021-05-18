@@ -108,7 +108,7 @@ def postFeedVote(request, parameter):
             
             if serializer.is_valid():
                 serializer.save()
-                return handleResponseMessage(status.HTTP_201_CREATED,
+                return handleResponseMessage(status.HTTP_200_OK,
                                 'Successfully voted.',
                                 serializer.data)
             return handleResponseMessage(status.HTTP_400_BAD_REQUEST, 'Invalid vote.')
