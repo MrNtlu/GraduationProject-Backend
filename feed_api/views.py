@@ -90,6 +90,29 @@ def postFeed(request):
     else:
         return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
     
+@api_view(['POST'])
+def postReport(request, parameter):
+    if request.user.is_authenticated:
+        try:
+            feed = models.Feed.objects.get(id=parameter)
+        except:
+            return handleResponseMessage(status.HTTP_404_NOT_FOUND,
+                                         "Couldn't find the corresponding Feed.")
+            
+        serializer = serializers.ReportSerializer(data=request.data, context={
+            'feed': feed,
+            'user': request.user
+        })
+        
+        if serializer.is_valid():
+            serializer.save()
+            return handleResponseMessage(status.HTTP_200_OK,
+                                'Successfully reported.',
+                                serializer.data)
+        return handleResponseMessage(status.HTTP_400_BAD_REQUEST, 'Invalid report.')
+    else:
+        return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
+            
 @api_view(['POST','PUT', 'DELETE'])
 def postFeedVote(request, parameter):
     if request.user.is_authenticated:
@@ -100,11 +123,10 @@ def postFeedVote(request, parameter):
                                          "Couldn't find the corresponding Feed.")
         
         if request.method == 'POST':
-            serializer = serializers.FeedVoteSerializer(data=request.data, 
-                                                    context={
-                                                        'feed': feed,
-                                                        'user': request.user
-                                                        })
+            serializer = serializers.FeedVoteSerializer(data=request.data, context={
+                'feed': feed,
+                'user': request.user
+                })
             
             if serializer.is_valid():
                 serializer.save()

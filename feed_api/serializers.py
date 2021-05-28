@@ -21,6 +21,22 @@ class FeedVoteSerializer(serializers.ModelSerializer):
         )
         return feedVote
 
+class ReportSerializer(serializers.ModelSerializer):
+    user = UserProfileSerializer(required=False)
+    
+    class Meta:
+        model = models.Report
+        fields = ['user']
+        
+    def create(self, validated_data):
+        user = self.context['user']
+        feed = self.context['feed']
+        
+        report = models.Report.objects.create(
+            user = user,
+            feed = feed
+        )
+        return report
 
 class ImageSerializer(serializers.ModelSerializer):
     class Meta:
@@ -34,11 +50,14 @@ class FeedSerializer(serializers.ModelSerializer):
     upvote_count = serializers.SerializerMethodField()
     downvote_count = serializers.SerializerMethodField()
     type = serializers.CharField(source='get_type_display')
+    reports = ReportSerializer(many=True, required=False)
+    report_count = serializers.SerializerMethodField()
+    
     class Meta:
         model = models.Feed
         fields = ['id','author','message','type','postedDate','updatedDate',
                   'latitude', 'longitude', 'locationName', 'images', 'votes',
-                  'upvote_count', 'downvote_count']
+                  'upvote_count', 'downvote_count', 'reports', 'report_count']
     
     def create(self, validated_data):
         images = self.context['images']
@@ -64,7 +83,9 @@ class FeedSerializer(serializers.ModelSerializer):
     def get_downvote_count(self, obj):
         return models.FeedVote.objects.filter(feed=obj, vote=-1).count()
     
-        
+    def get_report_count(self, obj):
+        return models.Report.objects.filter(feed=obj).count()
+    
 class CommentSerializer(serializers.ModelSerializer):
     #likes = VoteObjectRelatedField(many=True, queryset=models.Vote.objects.all(), required=False)
     author = UserProfileSerializer(required=False)

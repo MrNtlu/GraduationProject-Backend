@@ -12,6 +12,7 @@ urlpatterns = [
     path('feed/<parameter>/comments',views.getComments, name='comments'),
     path('feed/<parameter>/create',views.postComment, name='commentcreate'),
     path('feed/<parameter>/vote',views.postFeedVote, name='voteFeed'),
+    path('feed/<parameter>/report',views.postReport, name='reportFeed'),
     path('feed/location',views.getFeedByLocation, name='feedsbylocation'),
     path('', include(router.urls)),
 ]

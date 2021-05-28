@@ -51,6 +51,10 @@ class FeedVote(models.Model):
     def __str__(self):
         return str(self.user.name) + ' voted ' + str(self.feed.id) + ' vote type is ' + str(self.vote)
     
+class Report(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, unique=True)
+    feed = models.ForeignKey(Feed, on_delete=models.CASCADE, related_name="reports")
+    
 class Comment(models.Model):
     id = models.AutoField(primary_key=True)
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
