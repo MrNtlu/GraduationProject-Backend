@@ -26,7 +26,7 @@ class ReportSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = models.Report
-        fields = ['user']
+        fields = ['user', 'reportDate']
         
     def create(self, validated_data):
         user = self.context['user']
@@ -50,14 +50,14 @@ class FeedSerializer(serializers.ModelSerializer):
     upvote_count = serializers.SerializerMethodField()
     downvote_count = serializers.SerializerMethodField()
     type = serializers.CharField(source='get_type_display')
-    reports = ReportSerializer(many=True, required=False)
-    report_count = serializers.SerializerMethodField()
+    #reports = ReportSerializer(many=True, required=False)
+    user_vote = serializers.SerializerMethodField()
     
     class Meta:
         model = models.Feed
         fields = ['id','author','message','type','postedDate','updatedDate',
                   'latitude', 'longitude', 'locationName', 'images', 'votes',
-                  'upvote_count', 'downvote_count', 'reports', 'report_count']
+                  'upvote_count', 'downvote_count', 'user_vote']
     
     def create(self, validated_data):
         images = self.context['images']
@@ -83,8 +83,15 @@ class FeedSerializer(serializers.ModelSerializer):
     def get_downvote_count(self, obj):
         return models.FeedVote.objects.filter(feed=obj, vote=-1).count()
     
-    def get_report_count(self, obj):
-        return models.Report.objects.filter(feed=obj).count()
+    def get_user_vote(self, obj):
+        user_vote = models.FeedVote.objects.filter(feed=obj, user=obj.author)
+        vote_type = None
+        if user_vote.exists():
+            vote_type = user_vote[0].vote
+        return {
+                'is_voted': user_vote.exists(),
+                'vote_type': vote_type
+                }
     
 class CommentSerializer(serializers.ModelSerializer):
     #likes = VoteObjectRelatedField(many=True, queryset=models.Vote.objects.all(), required=False)

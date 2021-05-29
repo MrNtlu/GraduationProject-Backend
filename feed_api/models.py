@@ -54,6 +54,7 @@ class FeedVote(models.Model):
 class Report(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, unique=True)
     feed = models.ForeignKey(Feed, on_delete=models.CASCADE, related_name="reports")
+    reportDate = models.DateTimeField(auto_now_add=True, verbose_name="date reported")
     
 class Comment(models.Model):
     id = models.AutoField(primary_key=True)

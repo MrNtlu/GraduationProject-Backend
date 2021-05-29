@@ -38,7 +38,10 @@ def getUserFeed(request, parameter):
                                          serializer.data)
     else:
         return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
-        
+
+### MISSING APIs ###
+# GET Feed by followers (Feed messages whom you follow)
+# 
 
 @api_view(['GET'])
 def getFeedByLocation(request):
@@ -89,7 +92,8 @@ def postFeed(request):
         return handleResponseMessage(status.HTTP_400_BAD_REQUEST, 'Invalid post.')
     else:
         return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
-    
+
+
 @api_view(['POST'])
 def postReport(request, parameter):
     if request.user.is_authenticated:
@@ -112,7 +116,8 @@ def postReport(request, parameter):
         return handleResponseMessage(status.HTTP_400_BAD_REQUEST, 'Invalid report.')
     else:
         return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
-            
+
+  
 @api_view(['POST','PUT', 'DELETE'])
 def postFeedVote(request, parameter):
     if request.user.is_authenticated:

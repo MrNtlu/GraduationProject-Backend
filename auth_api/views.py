@@ -4,11 +4,13 @@ from rest_framework.authtoken.views import ObtainAuthToken, AuthTokenSerializer
 from rest_framework.settings import api_settings
 from rest_framework.decorators import api_view
 from rest_framework.authtoken.models import Token
+from rest_framework import generics
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import status, viewsets, filters
 from auth_api import serializers, models, permissions
 from collections import OrderedDict
 from graduation_project.base_response import handleResponseMessage
+
 
 @api_view(['GET'])
 def getUserInfo(request, parameter):
@@ -24,38 +26,7 @@ def getUserInfo(request, parameter):
                               serializer.data)
     else:
         return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
-    
-@api_view(['GET'])
-def getUserFollowers(request, parameter):
-    if request.user.is_authenticated:
-        try:
-            user = models.UserProfile.objects.get(id=parameter) 
-        except:
-            return handleResponseMessage(status.HTTP_404_NOT_FOUND,'User not found.')
-    
-        followers = models.UserFollowing.objects.filter(user=user)
-        serializer = serializers.FollowerSerializer(followers, many=True)
-        return handleResponseMessage(status.HTTP_200_OK,
-                              'Successfully received follower info.',
-                              serializer.data)
-    else:
-        return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
-    
-@api_view(['GET'])
-def getUserFollowings(request, parameter):
-    if request.user.is_authenticated:
-        try:
-            user = models.UserProfile.objects.get(id=parameter) 
-        except:
-            return handleResponseMessage(status.HTTP_404_NOT_FOUND,'User not found.')
-    
-        followings = models.UserFollowing.objects.filter(followerUser=user)
-        serializer = serializers.FollowingSerializer(followings, many=True)
-        return handleResponseMessage(status.HTTP_200_OK,
-                              'Successfully received User info.',
-                              serializer.data)
-    else:
-        return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
+
 
 class LoginUser(ObtainAuthToken):
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES
@@ -80,7 +51,7 @@ class LoginUser(ObtainAuthToken):
             except:
                 error_message = "Unable to login. Please check credentials."
             return handleResponseMessage(status.HTTP_400_BAD_REQUEST,error_message)
-            
+
 
 @api_view(['POST'])
 def registerUser(request):
@@ -109,7 +80,6 @@ def registerUser(request):
                               f'{user.name} successfully registered.',
                               data)
     else:
-        print(serializer.errors)
         isEmailInvalid = serializer.errors.get('email')
         isUsernameInvalid = serializer.errors.get('username')
         error_message = "Error occured, please try again."
@@ -164,32 +134,70 @@ def followUser(request, parameter):
     else:
         return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
 
+
+@api_view(['GET'])
+def getUserFollowers(request, parameter):
+    if request.user.is_authenticated:
+        try:
+            user = models.UserProfile.objects.get(id=parameter) 
+        except:
+            return handleResponseMessage(status.HTTP_404_NOT_FOUND,'User not found.')
+    
+        followers = models.UserFollowing.objects.filter(user=user)
+        serializer = serializers.FollowerSerializer(followers, many=True)
+        return handleResponseMessage(status.HTTP_200_OK,
+                              'Successfully received follower info.',
+                              serializer.data)
+    else:
+        return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
+
+
+@api_view(['GET'])
+def getUserFollowings(request, parameter):
+    if request.user.is_authenticated:
+        try:
+            user = models.UserProfile.objects.get(id=parameter) 
+        except:
+            return handleResponseMessage(status.HTTP_404_NOT_FOUND,'User not found.')
+    
+        followings = models.UserFollowing.objects.filter(followerUser=user)
+        serializer = serializers.FollowingSerializer(followings, many=True)
+        return handleResponseMessage(status.HTTP_200_OK,
+                              'Successfully received User info.',
+                              serializer.data)
+    else:
+        return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
+
 ### MISSING APIs ###
 # UPLOAD IMAGE
-# UPDATE PROFILE
-# 
+#
 
-# @api_view(['PUT'])
-# def updateUserInfo(request, parameter, test):
-#     try:
-#         userProfile = models.UserProfile.objects.get(id=parameter) 
-#     except:
-#         return Response({'status':status.HTTP_404_NOT_FOUND})
-    
-#     serializer = serializers.UserProfileSerializer(userProfile, data=request.data)
-#     data = {}
-#     print({
-#         'parameter': parameter,
-#         'test': test,
-#         'request': request.data,
-#         'auth_user': request.user,
-#         'is_authenticated': request.user.is_authenticated 
-#     })
-#     if serializer.is_valid():
-#         serializer.save()
-#         data['success'] = "Updated successfully."
-#         return Response(data=data)
-#     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+class ChangePasswordView(generics.UpdateAPIView):
+    queryset = models.UserProfile.objects.all()
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (permissions.UpdateOwnProfile,)
+    serializer_class = serializers.ChangePasswordSerializer
+
+@api_view(['PUT'])
+def updateUserInfo(request, parameter):
+    if request.user.is_authenticated:
+        try:
+            userProfile = models.UserProfile.objects.get(id=parameter) 
+        except:
+            return handleResponseMessage(status.HTTP_404_NOT_FOUND,'User not found.')
+        
+        serializer = serializers.UpdateUserSerializer(
+            userProfile, 
+            data=request.data,
+            context=request.user
+            )
+        
+        if serializer.is_valid():
+            serializer.save()
+            return handleResponseMessage(status.HTTP_200_OK, "Updated successfully.")
+        return handleResponseMessage(status.HTTP_400_BAD_REQUEST, serializer.errors)
+    else:
+        return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
 
 class UserProfileViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.UserProfileSerializer
@@ -199,7 +207,6 @@ class UserProfileViewSet(viewsets.ModelViewSet):
     filter_backends = (filters.SearchFilter,)
     search_fields = ('username', 'name',)
     
-
 class UserFollowingViewSet(viewsets.ModelViewSet):
     permission_classes = (permissions.permissions.IsAuthenticatedOrReadOnly,)
     serializer_class = serializers.FollowingSerializer
