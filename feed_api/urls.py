@@ -14,5 +14,6 @@ urlpatterns = [
     path('feed/<parameter>/vote',views.postFeedVote, name='voteFeed'),
     path('feed/<parameter>/report',views.postReport, name='reportFeed'),
     path('feed/location',views.getFeedByLocation, name='feedsbylocation'),
+    path('feed/follow',views.getFeedByFollowings, name='feedByFollowings'),
     path('', include(router.urls)),
 ]

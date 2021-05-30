@@ -13,6 +13,7 @@ urlpatterns = [
     path('user/<parameter>/followings', views.getUserFollowings, name='user_followings'),
     path('user/<parameter>/follow', views.followUser, name='follow'),
     path('user/<parameter>/edit', views.updateUserInfo, name='user_edit'),
+    path('user/<parameter>/upload', views.updateUserImage, name='upload_user_image'),
     path('change_password/<int:pk>', views.ChangePasswordView.as_view(), name='change_password'),
     path('', include(router.urls)),
 ]

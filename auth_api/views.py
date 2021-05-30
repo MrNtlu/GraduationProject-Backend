@@ -168,15 +168,28 @@ def getUserFollowings(request, parameter):
     else:
         return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
 
-### MISSING APIs ###
-# UPLOAD IMAGE
-#
 
-class ChangePasswordView(generics.UpdateAPIView):
-    queryset = models.UserProfile.objects.all()
-    authentication_classes = (TokenAuthentication,)
-    permission_classes = (permissions.UpdateOwnProfile,)
-    serializer_class = serializers.ChangePasswordSerializer
+@api_view(['PUT'])
+def updateUserImage(request, parameter):
+    if request.user.is_authenticated:
+        try:
+            userProfile = models.UserProfile.objects.get(id=parameter) 
+        except:
+            return handleResponseMessage(status.HTTP_404_NOT_FOUND,'User not found.')
+        
+        serializer = serializers.UserProfileImageSerializer(
+            userProfile, 
+            data=request.data,
+            context=request.user
+            )
+        
+        if serializer.is_valid():
+            serializer.save()
+            return handleResponseMessage(status.HTTP_200_OK, "Image uploaded successfully.")
+        return handleResponseMessage(status.HTTP_400_BAD_REQUEST, serializer.errors)
+    else:
+        return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
+
 
 @api_view(['PUT'])
 def updateUserInfo(request, parameter):
@@ -199,6 +212,7 @@ def updateUserInfo(request, parameter):
     else:
         return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
 
+
 class UserProfileViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.UserProfileSerializer
     queryset = models.UserProfile.objects.all()
@@ -207,7 +221,15 @@ class UserProfileViewSet(viewsets.ModelViewSet):
     filter_backends = (filters.SearchFilter,)
     search_fields = ('username', 'name',)
     
+    
 class UserFollowingViewSet(viewsets.ModelViewSet):
     permission_classes = (permissions.permissions.IsAuthenticatedOrReadOnly,)
     serializer_class = serializers.FollowingSerializer
     queryset = models.UserFollowing.objects.all()
+    
+    
+class ChangePasswordView(generics.UpdateAPIView):
+    queryset = models.UserProfile.objects.all()
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (permissions.UpdateOwnProfile,)
+    serializer_class = serializers.ChangePasswordSerializer

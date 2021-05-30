@@ -3,6 +3,7 @@ from auth_api import models
 from feed_api.models import Feed
 from django.contrib.auth.password_validation import validate_password
         
+        
 class UserProfileSerializer(serializers.ModelSerializer):
     #followings = FollowingSerializer(models.UserFollowing.objects.all(), many=True, required=False)
     #followers = FollowerSerializer(models.UserFollowing.objects.all(), many=True, required=False)
@@ -41,6 +42,23 @@ class UserProfileSerializer(serializers.ModelSerializer):
         )
         
         return user
+
+
+class UserProfileImageSerializer(serializers.ModelSerializer):
+    image = serializers.ImageField(required=True)
+    
+    class Meta:
+        model = models.UserProfile
+        fields = ('image',)
+
+    def update(self, instance, validated_data):
+        if self.context.id != instance.id:
+            raise serializers.ValidationError({"authorize": "You dont have permission for this user."})
+        
+        instance.image = validated_data['image']
+        instance.save()
+        return instance
+
 
 class UpdateUserSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(required=False)
