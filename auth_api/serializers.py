@@ -55,6 +55,8 @@ class UserProfileImageSerializer(serializers.ModelSerializer):
         if self.context.id != instance.id:
             raise serializers.ValidationError({"authorize": "You dont have permission for this user."})
         
+        if instance.image:
+            instance.image.delete()
         instance.image = validated_data['image']
         instance.save()
         return instance

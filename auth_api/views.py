@@ -12,6 +12,11 @@ from collections import OrderedDict
 from graduation_project.base_response import handleResponseMessage
 
 
+### TODO
+# Forgot password
+# Email confirmation
+#
+
 @api_view(['GET'])
 def getUserInfo(request, parameter):
     if request.user.is_authenticated:
@@ -180,8 +185,7 @@ def updateUserImage(request, parameter):
         serializer = serializers.UserProfileImageSerializer(
             userProfile, 
             data=request.data,
-            context=request.user
-            )
+            context=request.user)
         
         if serializer.is_valid():
             serializer.save()
@@ -202,13 +206,23 @@ def updateUserInfo(request, parameter):
         serializer = serializers.UpdateUserSerializer(
             userProfile, 
             data=request.data,
-            context=request.user
-            )
+            context=request.user)
         
         if serializer.is_valid():
             serializer.save()
             return handleResponseMessage(status.HTTP_200_OK, "Updated successfully.")
-        return handleResponseMessage(status.HTTP_400_BAD_REQUEST, serializer.errors)
+        else:
+            isEmailInvalid = serializer.errors.get('email')
+            isUsernameInvalid = serializer.errors.get('username')
+            error_message = "Error occured, please try again."
+            if isEmailInvalid and isUsernameInvalid:
+                error_message = "Username and Email already exists."
+            elif isEmailInvalid:
+                error_message = "Email already exists."
+            elif isUsernameInvalid:
+                error_message = "Username already exists."
+                
+            return handleResponseMessage(status.HTTP_400_BAD_REQUEST, error_message)
     else:
         return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
 

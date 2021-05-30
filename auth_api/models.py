@@ -5,9 +5,11 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from rest_framework.authtoken.models import Token
 
+
 def upload_location(instance, filename, **kwargs):
-	file_path = 'profile/{user_id}'.format(
-			user_id=str(instance.id)
+	file_path = 'profile/{user_id}-{filename}.jpg'.format(
+			user_id=str(instance.id),
+            filename=str(filename)
 		) 
 	return file_path
 
