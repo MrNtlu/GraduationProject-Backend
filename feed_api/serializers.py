@@ -83,7 +83,7 @@ class FeedSerializer(serializers.ModelSerializer):
         return models.FeedVote.objects.filter(feed=obj, vote=-1).count()
     
     def get_user_vote(self, obj):
-        user_vote = models.FeedVote.objects.filter(feed=obj, user=obj.author)
+        user_vote = models.FeedVote.objects.filter(feed=obj, user=self.context['user'])
         vote_type = None
         if user_vote.exists():
             vote_type = user_vote[0].vote

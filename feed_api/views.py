@@ -26,7 +26,7 @@ def getFeed(request, parameter):
             return handleResponseMessage(status.HTTP_404_NOT_FOUND,
                                          "Couldn't find the corresponding Feed.")
         
-        serializer = serializers.FeedSerializer(feed)
+        serializer = serializers.FeedSerializer(feed, context={ 'user': request.user })
         return handleResponseMessage(
             status.HTTP_200_OK,
             'Successfully retrieved feed.',
@@ -49,7 +49,7 @@ def getUserFeed(request, parameter):
         except EmptyPage:
             return handleResponseMessage(status.HTTP_200_OK, "No item left.")
         
-        serializer = serializers.FeedSerializer(feedPagination, many=True)
+        serializer = serializers.FeedSerializer(feedPagination, many=True, context={ 'user': request.user })
         
         return handleResponseMessage(
             status.HTTP_200_OK,
@@ -75,7 +75,7 @@ def getFeedByFollowings(request):
         except EmptyPage:
             return handleResponseMessage(status.HTTP_200_OK, "No item left.")
         
-        serializer = serializers.FeedSerializer(feedPagination, many=True)
+        serializer = serializers.FeedSerializer(feedPagination, many=True, context={ 'user': request.user })
         
         return handleResponseMessage(
             status.HTTP_200_OK,
@@ -119,7 +119,7 @@ def getFeedByLocation(request):
             except EmptyPage:
                 return handleResponseMessage(status.HTTP_200_OK, "No item left.")
             
-            serializer = serializers.FeedSerializer(feedPagination, many=True)
+            serializer = serializers.FeedSerializer(feedPagination, many=True, context={ 'user': request.user })
             
             return handleResponseMessage(
                 status.HTTP_200_OK,
@@ -193,10 +193,11 @@ def postFeedVote(request, parameter):
             
             if serializer.is_valid():
                 serializer.save()
+                finalFeedData = serializers.FeedSerializer(feed, context={ 'user': request.user }).data
                 return handleResponseMessage(
                     status.HTTP_200_OK,
                     'Successfully voted.',
-                    serializer.data)
+                    finalFeedData)
             return handleResponseMessage(status.HTTP_400_BAD_REQUEST, 'Invalid vote.')
         
         elif request.method == 'PUT':
@@ -208,10 +209,11 @@ def postFeedVote(request, parameter):
             serializer = serializers.FeedVoteSerializer(feedVote, data=request.data)
             if serializer.is_valid():
                 serializer.save()
+                finalFeedData = serializers.FeedSerializer(feed, context={ 'user': request.user }).data
                 return handleResponseMessage(
                     status.HTTP_200_OK,
                     'Successfully updated.',
-                    serializer.data)
+                    finalFeedData)
             return handleResponseMessage(status.HTTP_400_BAD_REQUEST, 'Invalid vote.')
         
         elif request.method == 'DELETE':            
@@ -221,8 +223,11 @@ def postFeedVote(request, parameter):
                 return handleResponseMessage(status.HTTP_404_NOT_FOUND,"Couldn't find the corresponding vote.")
             
             feedVote.delete()
-            return handleResponseMessage(status.HTTP_200_OK,
-                                'Successfully deleted.')
+            finalFeedData = serializers.FeedSerializer(feed, context={ 'user': request.user }).data
+            return handleResponseMessage(
+                status.HTTP_200_OK,
+                'Successfully deleted.',
+                finalFeedData)
     else:
         return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
 

@@ -79,7 +79,7 @@ class UserFollowing(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['user', 'followerUser'], name='uniqueConstraint')
+            models.UniqueConstraint(fields=['user', 'followerUser'], name='followerConstraint')
         ]
         ordering = ["-created"]
         

@@ -45,17 +45,24 @@ class FeedVote(models.Model):
     class VoteType(models.IntegerChoices):
         UpVote = 1
         DownVote = -1
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, unique=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, unique=False)
     vote = models.IntegerField(choices=VoteType.choices, default=VoteType.UpVote)
     feed = models.ForeignKey(Feed, on_delete=models.CASCADE, related_name="votes")
     
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'feed'], name='voteConstraint')
+        ]
+    
     def __str__(self):
-        return str(self.user.name) + ' voted ' + str(self.feed.id) + ' vote type is ' + str(self.vote)
+        return str(self.id) + ' ' + str(self.user.name) + ' voted ' + str(self.feed.id) + ' vote type is ' + str(self.vote)
+    
     
 class Report(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, unique=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     feed = models.ForeignKey(Feed, on_delete=models.CASCADE, related_name="reports")
     reportDate = models.DateTimeField(auto_now_add=True, verbose_name="date reported")
+    
     
 class Comment(models.Model):
     id = models.AutoField(primary_key=True)
