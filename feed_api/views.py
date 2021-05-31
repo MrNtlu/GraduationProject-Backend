@@ -6,9 +6,14 @@ from feed_api import models, serializers
 from auth_api.models import UserFollowing
 #from rest_framework.permissions import IsAuthenticated
 from django.db.models.expressions import RawSQL
-
 from graduation_project.base_response import handleResponseMessage
+from django.core.paginator import PageNotAnInteger, Paginator, EmptyPage
+from rest_framework.pagination import PageNumberPagination
 import math
+
+
+FEED_PAGINATION_LIMIT = 15
+COMMENT_PAGINATION_LIMIT = 20
 
 ### FEED API
 
@@ -34,7 +39,17 @@ def getFeed(request, parameter):
 def getUserFeed(request, parameter):
     if request.user.is_authenticated:
         feeds = models.Feed.objects.filter(author__id=parameter)
-        serializer = serializers.FeedSerializer(feeds, many=True)
+        page = request.GET.get('page')
+        paginator = Paginator(feeds, FEED_PAGINATION_LIMIT)
+        
+        try:
+            feedPagination = paginator.page(page)
+        except PageNotAnInteger:
+            feedPagination = paginator.page(1)
+        except EmptyPage:
+            return handleResponseMessage(status.HTTP_200_OK, "No item left.")
+        
+        serializer = serializers.FeedSerializer(feedPagination, many=True)
         
         return handleResponseMessage(
             status.HTTP_200_OK,
@@ -42,7 +57,7 @@ def getUserFeed(request, parameter):
             serializer.data)
     else:
         return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
-    
+
 
 @api_view(['GET'])
 def getFeedByFollowings(request):
@@ -50,7 +65,17 @@ def getFeedByFollowings(request):
         user = request.user
         user_followings = UserFollowing.objects.filter(followerUser=user).values('user')
         feeds = models.Feed.objects.filter(author__in = user_followings)
-        serializer = serializers.FeedSerializer(feeds, many=True)
+        page = request.GET.get('page')
+        paginator = Paginator(feeds, FEED_PAGINATION_LIMIT)
+        
+        try:
+            feedPagination = paginator.page(page)
+        except PageNotAnInteger:
+            feedPagination = paginator.page(1)
+        except EmptyPage:
+            return handleResponseMessage(status.HTTP_200_OK, "No item left.")
+        
+        serializer = serializers.FeedSerializer(feedPagination, many=True)
         
         return handleResponseMessage(
             status.HTTP_200_OK,
@@ -58,8 +83,8 @@ def getFeedByFollowings(request):
             serializer.data)
     else:
         return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
-    
-    
+
+ 
 @api_view(['GET'])
 def getFeedByLocation(request):
     if request.user.is_authenticated:
@@ -83,7 +108,18 @@ def getFeedByLocation(request):
             .annotate(distance=distanceRawSQL)\
             .order_by('distance')
             nearbyFeeds = nearbyFeeds.filter(distance__lt=distance)
-            serializer = serializers.FeedSerializer(nearbyFeeds, many=True)
+            
+            page = request.GET.get('page')
+            paginator = Paginator(nearbyFeeds, FEED_PAGINATION_LIMIT)
+            
+            try:
+                feedPagination = paginator.page(page)
+            except PageNotAnInteger:
+                feedPagination = paginator.page(1)
+            except EmptyPage:
+                return handleResponseMessage(status.HTTP_200_OK, "No item left.")
+            
+            serializer = serializers.FeedSerializer(feedPagination, many=True)
             
             return handleResponseMessage(
                 status.HTTP_200_OK,
@@ -96,11 +132,12 @@ def getFeedByLocation(request):
 @api_view(['POST'])
 def postFeed(request):
     if request.user.is_authenticated:
-        serializer = serializers.FeedSerializer(data=request.data, 
-                                                context={
-                                                    'images': request.data.getlist('images'),
-                                                    'user': request.user
-                                                    })
+        serializer = serializers.FeedSerializer(
+            data=request.data, 
+            context={
+                'images': request.data.getlist('images'),
+                'user': request.user})
+        
         if serializer.is_valid():
             serializer.save()
             return handleResponseMessage(
@@ -137,7 +174,7 @@ def postReport(request, parameter):
     else:
         return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
 
-  
+
 @api_view(['POST','PUT', 'DELETE'])
 def postFeedVote(request, parameter):
     if request.user.is_authenticated:
@@ -188,7 +225,7 @@ def postFeedVote(request, parameter):
                                 'Successfully deleted.')
     else:
         return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
-    
+
 ### COMMENT API
 
 @api_view(['GET'])
@@ -200,7 +237,18 @@ def getComments(request, parameter):
             return handleResponseMessage(status.HTTP_404_NOT_FOUND, "Couldn't find the corresponding Feed.")
         
         comments = feed.comments.all()
-        serializer = serializers.CommentSerializer(comments, many=True)
+        page = request.GET.get('page')
+        paginator = Paginator(comments, FEED_PAGINATION_LIMIT)
+        
+        try:
+            commentPagination = paginator.page(page)
+        except PageNotAnInteger:
+            commentPagination = paginator.page(1)
+        except EmptyPage:
+            return handleResponseMessage(status.HTTP_200_OK, "No item left.")
+
+        serializer = serializers.CommentSerializer(commentPagination, many=True)
+        
         return handleResponseMessage(
             status.HTTP_200_OK,
             'Successfully queried comments.',
@@ -248,9 +296,15 @@ def distance(origin, destination):
     return d
 
 
+class PaginationModel(PageNumberPagination):
+    page_size = FEED_PAGINATION_LIMIT
+    page_size_query_param = 'page_size'
+
+
 class FeedViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.FeedSerializer
     queryset = models.Feed.objects.all()
     authentication_classes = (TokenAuthentication,)
     filter_backends = (filters.SearchFilter,)
     search_fields = ('author', 'message')
+    paginator = PaginationModel()

@@ -50,14 +50,13 @@ class FeedSerializer(serializers.ModelSerializer):
     upvote_count = serializers.SerializerMethodField()
     downvote_count = serializers.SerializerMethodField()
     type = serializers.CharField(source='get_type_display')
-    #reports = ReportSerializer(many=True, required=False)
     user_vote = serializers.SerializerMethodField()
     
     class Meta:
         model = models.Feed
         fields = ['id','author','message','type','postedDate','updatedDate',
                   'latitude', 'longitude', 'locationName', 'images', 'votes',
-                  'upvote_count', 'downvote_count', 'user_vote']
+                  'upvote_count', 'downvote_count', 'user_vote', 'isSpam']
     
     def create(self, validated_data):
         images = self.context['images']

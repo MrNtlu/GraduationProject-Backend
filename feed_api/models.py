@@ -27,6 +27,7 @@ class Feed(models.Model):
     type = models.IntegerField(choices=FeedType.choices, default=FeedType.Feed)
     postedDate = models.DateTimeField(auto_now_add=True, verbose_name="date posted")
     updatedDate = models.DateTimeField(auto_now=True, verbose_name="date updated")
+    isSpam = models.BooleanField(default=False)
     latitude = models.FloatField()
     longitude = models.FloatField()
     locationName = models.TextField()
@@ -66,7 +67,7 @@ class Comment(models.Model):
     feed = models.ForeignKey(Feed, on_delete=models.CASCADE, related_name="comments")
     
     def __str__(self):
-        return self.author,': ',self.message
+        return self.author.name + ': ' + self.message
     
 
 class Image(models.Model):

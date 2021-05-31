@@ -1,3 +1,4 @@
+from django.core import paginator
 from rest_framework.response import Response
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.views import ObtainAuthToken, AuthTokenSerializer
@@ -8,14 +9,18 @@ from rest_framework import generics
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import status, viewsets, filters
 from auth_api import serializers, models, permissions
-from collections import OrderedDict
 from graduation_project.base_response import handleResponseMessage
-
+from django.core.paginator import PageNotAnInteger, Paginator, EmptyPage
+from rest_framework.pagination import PageNumberPagination
 
 ### TODO
 # Forgot password
 # Email confirmation
 #
+
+FOLLOW_PAGINATION_LIMIT = 15
+SEARCH_PAGINATION_LIMIT = 25
+
 
 @api_view(['GET'])
 def getUserInfo(request, parameter):
@@ -26,9 +31,10 @@ def getUserInfo(request, parameter):
             return handleResponseMessage(status.HTTP_404_NOT_FOUND,'User not found.')
     
         serializer = serializers.UserProfileSerializer(userProfile)
-        return handleResponseMessage(status.HTTP_200_OK,
-                              'Successfully received User info.',
-                              serializer.data)
+        return handleResponseMessage(
+            status.HTTP_200_OK,
+            'Successfully received User info.',
+            serializer.data)
     else:
         return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
 
@@ -147,12 +153,24 @@ def getUserFollowers(request, parameter):
             user = models.UserProfile.objects.get(id=parameter) 
         except:
             return handleResponseMessage(status.HTTP_404_NOT_FOUND,'User not found.')
-    
+
         followers = models.UserFollowing.objects.filter(user=user)
-        serializer = serializers.FollowerSerializer(followers, many=True)
-        return handleResponseMessage(status.HTTP_200_OK,
-                              'Successfully received follower info.',
-                              serializer.data)
+        page = request.GET.get('page')
+        paginator = Paginator(followers, FOLLOW_PAGINATION_LIMIT)
+        
+        try:
+            followerPagination = paginator.page(page)
+        except PageNotAnInteger:
+            followerPagination = paginator.page(1)
+        except EmptyPage:
+            return handleResponseMessage(status.HTTP_200_OK, "No item left.")
+        
+        serializer = serializers.FollowerSerializer(followerPagination, many=True)
+
+        return handleResponseMessage(
+            status.HTTP_200_OK,
+            'Successfully received follower info.',
+            serializer.data)
     else:
         return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
 
@@ -166,10 +184,22 @@ def getUserFollowings(request, parameter):
             return handleResponseMessage(status.HTTP_404_NOT_FOUND,'User not found.')
     
         followings = models.UserFollowing.objects.filter(followerUser=user)
-        serializer = serializers.FollowingSerializer(followings, many=True)
-        return handleResponseMessage(status.HTTP_200_OK,
-                              'Successfully received User info.',
-                              serializer.data)
+        page = request.GET.get('page')
+        paginator = Paginator(followings, FOLLOW_PAGINATION_LIMIT)
+        
+        try:
+            followingsPagination = paginator.page(page)
+        except PageNotAnInteger:
+            followingsPagination = paginator.page(1)
+        except EmptyPage:
+            return handleResponseMessage(status.HTTP_200_OK, "No item left.")
+        
+        serializer = serializers.FollowerSerializer(followingsPagination, many=True)
+        
+        return handleResponseMessage(
+            status.HTTP_200_OK,
+            'Successfully received User info.',
+            serializer.data)
     else:
         return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
 
@@ -227,6 +257,11 @@ def updateUserInfo(request, parameter):
         return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
 
 
+class PaginationModel(PageNumberPagination):
+    page_size = SEARCH_PAGINATION_LIMIT
+    page_size_query_param = 'page_size'
+
+
 class UserProfileViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.UserProfileSerializer
     queryset = models.UserProfile.objects.all()
@@ -234,14 +269,9 @@ class UserProfileViewSet(viewsets.ModelViewSet):
     permission_classes = (permissions.UpdateOwnProfile,)
     filter_backends = (filters.SearchFilter,)
     search_fields = ('username', 'name',)
-    
-    
-class UserFollowingViewSet(viewsets.ModelViewSet):
-    permission_classes = (permissions.permissions.IsAuthenticatedOrReadOnly,)
-    serializer_class = serializers.FollowingSerializer
-    queryset = models.UserFollowing.objects.all()
-    
-    
+    paginator = PaginationModel()
+
+
 class ChangePasswordView(generics.UpdateAPIView):
     queryset = models.UserProfile.objects.all()
     authentication_classes = (TokenAuthentication,)
