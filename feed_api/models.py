@@ -61,23 +61,54 @@ class FeedVote(models.Model):
 class Report(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     feed = models.ForeignKey(Feed, on_delete=models.CASCADE, related_name="reports")
-    reportDate = models.DateTimeField(auto_now_add=True, verbose_name="date reported")
+    reportDate = models.DateTimeField(auto_now_add=True, verbose_name="reportDate")
     
-###TODO
-# isSpam
-# Comment Vote or Like
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'feed'], name='reportConstraint')
+        ]
+        
+    def __str__(self):
+        return str(self.id) + ' ' + str(self.user.name) + ' reported ' + str(self.feed.id)
+        
 class Comment(models.Model):
     id = models.AutoField(primary_key=True)
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     message = models.TextField(blank=False, null=False)
     postedDate = models.DateTimeField(auto_now_add=True, verbose_name="date posted")
     updatedDate = models.DateTimeField(auto_now=True, verbose_name="date updated")
-    #likes = GenericRelation(Vote)
+    isSpam = models.BooleanField(default=False)
     feed = models.ForeignKey(Feed, on_delete=models.CASCADE, related_name="comments")
     
     def __str__(self):
         return self.author.name + ': ' + self.message
     
+
+class CommentLike(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, unique=False)
+    comment = models.ForeignKey(Comment, on_delete=models.CASCADE, related_name="likes")
+    
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'comment'], name='commentLikeConstraint')
+        ]
+        
+    def __str__(self):
+        return str(self.id) + ' ' + str(self.user.name) + ' liked ' + str(self.comment.id)
+
+
+class CommentReport(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    comment = models.ForeignKey(Comment, on_delete=models.CASCADE, related_name="commentReport")
+    reportDate = models.DateTimeField(auto_now_add=True, verbose_name="commentReportDate")
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'comment'], name='reportCommentConstraint')
+        ]
+
+    def __str__(self):
+        return str(self.id) + ' ' + str(self.user.name) + ' reported ' + str(self.comment.id)
 
 class Image(models.Model):
     image = models.ImageField(upload_to=upload_location)

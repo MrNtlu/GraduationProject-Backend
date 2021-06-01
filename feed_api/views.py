@@ -292,6 +292,64 @@ def postComment(request, parameter):
         return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
 
 
+@api_view(['POST'])
+def postLike(request, parameter):
+    if request.user.is_authenticated:
+        try:
+            comment = models.Comment.objects.get(id=parameter)
+        except:
+            return handleResponseMessage(
+                status.HTTP_404_NOT_FOUND,
+                "Couldn't find the corresponding comment.")
+            
+        serializer = serializers.CommentLikeSerializer(data=request.data, context={
+            'comment': comment,
+            'user': request.user
+        })
+        
+        if serializer.is_valid():
+            try:
+                serializer.save()
+                return handleResponseMessage(
+                    status.HTTP_200_OK,
+                    'Successfully liked.',
+                    serializer.data)
+            except:
+                    return handleResponseMessage(status.HTTP_400_BAD_REQUEST, 'Internal error! Please try again.') 
+        return handleResponseMessage(status.HTTP_400_BAD_REQUEST, 'Invalid report.')
+    else:
+        return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
+
+
+@api_view(['POST'])
+def postCommentReport(request, parameter):
+    if request.user.is_authenticated:
+        try:
+            comment = models.Comment.objects.get(id=parameter)
+        except:
+            return handleResponseMessage(
+                status.HTTP_404_NOT_FOUND,
+                "Couldn't find the corresponding comment.")
+            
+        serializer = serializers.CommentReportSerializer(data=request.data, context={
+            'comment': comment,
+            'user': request.user
+        })
+        
+        if serializer.is_valid():
+            try:
+                serializer.save()
+                return handleResponseMessage(
+                    status.HTTP_200_OK,
+                    'Successfully reported.',
+                    serializer.data)
+            except:
+                    return handleResponseMessage(status.HTTP_400_BAD_REQUEST, 'Internal error! Please try again.') 
+        return handleResponseMessage(status.HTTP_400_BAD_REQUEST, 'Invalid report.')
+    else:
+        return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
+
+
 def distance(origin, destination):
     lat1, lon1 = origin
     lat2, lon2 = destination

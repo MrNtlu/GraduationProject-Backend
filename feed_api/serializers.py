@@ -38,6 +38,40 @@ class ReportSerializer(serializers.ModelSerializer):
         )
         return report
 
+class CommentReportSerializer(serializers.ModelSerializer):
+    user = UserProfileSerializer(required=False)
+    
+    class Meta:
+        model = models.CommentReport
+        fields = ['user', 'reportDate']
+        
+    def create(self, validated_data):
+        user = self.context['user']
+        comment = self.context['comment']
+        
+        report = models.CommentReport.objects.create(
+            user = user,
+            comment = comment
+        )
+        return report
+
+class CommentLikeSerializer(serializers.ModelSerializer):
+    user = UserProfileSerializer(required=False)
+    
+    class Meta:
+        model = models.CommentLike
+        fields = ['user']
+        
+    def create(self, validated_data):
+        user = self.context['user']
+        comment = self.context['comment']
+        
+        commentLike = models.CommentLike.objects.create(
+            user = user,
+            comment = comment
+        )
+        return commentLike
+
 class ImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Image
@@ -95,10 +129,11 @@ class FeedSerializer(serializers.ModelSerializer):
 class CommentSerializer(serializers.ModelSerializer):
     #likes = VoteObjectRelatedField(many=True, queryset=models.Vote.objects.all(), required=False)
     author = UserProfileSerializer(required=False)
-
+    likes = serializers.SerializerMethodField()
+    
     class Meta:
         model = models.Comment
-        fields = ['id','author','message','postedDate','updatedDate', ] #'likes'
+        fields = ['id','author','message','postedDate','updatedDate', 'isSpam', 'likes'] #'likes'
         
     def create(self, validated_data):
         user = self.context['user']
@@ -111,3 +146,6 @@ class CommentSerializer(serializers.ModelSerializer):
         )
             
         return comment
+    
+    def get_likes(self, obj):
+        return models.CommentLike.objects.filter(comment=obj, user=obj.author).count()
