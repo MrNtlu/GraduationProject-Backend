@@ -165,11 +165,14 @@ def postReport(request, parameter):
         })
         
         if serializer.is_valid():
-            serializer.save()
-            return handleResponseMessage(
-                status.HTTP_200_OK,
-                'Successfully reported.',
-                serializer.data)
+            try:
+                serializer.save()
+                return handleResponseMessage(
+                    status.HTTP_200_OK,
+                    'Successfully reported.',
+                    serializer.data)
+            except:
+                    return handleResponseMessage(status.HTTP_400_BAD_REQUEST, 'Internal error! Please try again.') 
         return handleResponseMessage(status.HTTP_400_BAD_REQUEST, 'Invalid report.')
     else:
         return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
@@ -192,12 +195,15 @@ def postFeedVote(request, parameter):
                 })
             
             if serializer.is_valid():
-                serializer.save()
-                finalFeedData = serializers.FeedSerializer(feed, context={ 'user': request.user }).data
-                return handleResponseMessage(
-                    status.HTTP_200_OK,
-                    'Successfully voted.',
-                    finalFeedData)
+                try:
+                    serializer.save()
+                    finalFeedData = serializers.FeedSerializer(feed, context={ 'user': request.user }).data
+                    return handleResponseMessage(
+                        status.HTTP_200_OK,
+                        'Successfully voted.',
+                        finalFeedData)
+                except:
+                    return handleResponseMessage(status.HTTP_400_BAD_REQUEST, 'Internal error! Please try again.') 
             return handleResponseMessage(status.HTTP_400_BAD_REQUEST, 'Invalid vote.')
         
         elif request.method == 'PUT':

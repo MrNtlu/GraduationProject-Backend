@@ -63,7 +63,9 @@ class Report(models.Model):
     feed = models.ForeignKey(Feed, on_delete=models.CASCADE, related_name="reports")
     reportDate = models.DateTimeField(auto_now_add=True, verbose_name="date reported")
     
-    
+###TODO
+# isSpam
+# Comment Vote or Like
 class Comment(models.Model):
     id = models.AutoField(primary_key=True)
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
