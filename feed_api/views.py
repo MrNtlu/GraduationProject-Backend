@@ -247,7 +247,12 @@ def getComments(request, parameter):
         except:
             return handleResponseMessage(status.HTTP_404_NOT_FOUND, "Couldn't find the corresponding Feed.")
         
+        sort = request.query_params.get('sort')
         comments = feed.comments.all()
+        
+        if sort is not None:
+            comments = feed.comments.all().order_by(sort)
+            
         page = request.GET.get('page')
         paginator = Paginator(comments, FEED_PAGINATION_LIMIT)
         

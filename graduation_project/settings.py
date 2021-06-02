@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework.authtoken',
+    'graduation_project.apps.GraduationProjectConfig',
     'auth_api',
     'feed_api'
 ]
