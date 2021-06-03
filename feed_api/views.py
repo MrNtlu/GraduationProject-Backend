@@ -1,10 +1,9 @@
 from rest_framework.response import Response
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view
 from rest_framework import viewsets, filters, status
 from rest_framework.authentication import TokenAuthentication
 from feed_api import models, serializers
 from auth_api.models import UserFollowing
-#from rest_framework.permissions import IsAuthenticated
 from django.db.models.expressions import RawSQL
 from graduation_project.base_response import handleResponseMessage
 from django.core.paginator import PageNotAnInteger, Paginator, EmptyPage
@@ -38,7 +37,7 @@ def getFeed(request, parameter):
 @api_view(['GET'])
 def getUserFeed(request, parameter):
     if request.user.is_authenticated:
-        feeds = models.Feed.objects.filter(author__id=parameter)
+        feeds = models.Feed.objects.filter(author__id=parameter).order_by("-postedDate")
         page = request.GET.get('page')
         paginator = Paginator(feeds, FEED_PAGINATION_LIMIT)
         
@@ -64,7 +63,7 @@ def getFeedByFollowings(request):
     if request.user.is_authenticated:
         user = request.user
         user_followings = UserFollowing.objects.filter(followerUser=user).values('user')
-        feeds = models.Feed.objects.filter(author__in = user_followings)
+        feeds = models.Feed.objects.filter(author__in = user_followings).order_by("-postedDate")
         page = request.GET.get('page')
         paginator = Paginator(feeds, FEED_PAGINATION_LIMIT)
         
@@ -107,7 +106,7 @@ def getFeedByLocation(request):
             nearbyFeeds = models.Feed.objects.all() \
             .annotate(distance=distanceRawSQL)\
             .order_by('distance')
-            nearbyFeeds = nearbyFeeds.filter(distance__lt=distance)
+            nearbyFeeds = nearbyFeeds.filter(distance__lt=distance).order_by("-postedDate")
             
             page = request.GET.get('page')
             paginator = Paginator(nearbyFeeds, FEED_PAGINATION_LIMIT)
@@ -132,16 +131,22 @@ def getFeedByLocation(request):
 @api_view(['POST'])
 def postFeed(request):
     if request.user.is_authenticated:
+        images = []
+        try:
+            images = request.data.getlist('images')
+        except:
+            images = request.data.get('images')
+            
         serializer = serializers.FeedSerializer(
             data=request.data, 
             context={
-                'images': request.data.getlist('images'),
+                'images': images,
                 'user': request.user})
         
         if serializer.is_valid():
             serializer.save()
             return handleResponseMessage(
-                status.HTTP_201_CREATED,
+                status.HTTP_200_OK,
                 'Successfully created post.',
                 serializer.data)
         return handleResponseMessage(status.HTTP_400_BAD_REQUEST, 'Invalid post.')
@@ -289,7 +294,7 @@ def postComment(request, parameter):
         if serializer.is_valid():
             serializer.save()
             return handleResponseMessage(
-                status.HTTP_201_CREATED,
+                status.HTTP_200_OK,
                 'Successfully posted comment.',
                 serializer.data)
         return handleResponseMessage(status.HTTP_400_BAD_REQUEST, 'Invalid comment.')
@@ -297,7 +302,7 @@ def postComment(request, parameter):
         return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
 
 
-@api_view(['POST'])
+@api_view(['POST','DELETE'])
 def postLike(request, parameter):
     if request.user.is_authenticated:
         try:
@@ -307,21 +312,35 @@ def postLike(request, parameter):
                 status.HTTP_404_NOT_FOUND,
                 "Couldn't find the corresponding comment.")
             
-        serializer = serializers.CommentLikeSerializer(data=request.data, context={
-            'comment': comment,
-            'user': request.user
-        })
-        
-        if serializer.is_valid():
+        if request.method == 'POST':
+            serializer = serializers.CommentLikeSerializer(data=request.data, context={
+                'comment': comment,
+                'user': request.user
+            })
+            
+            if serializer.is_valid():
+                try:
+                    serializer.save()
+                    finalCommentData = serializers.CommentSerializer(comment, context={ 'user': request.user }).data
+                    return handleResponseMessage(
+                        status.HTTP_200_OK,
+                        'Successfully liked.',
+                        finalCommentData)
+                except:
+                        return handleResponseMessage(status.HTTP_400_BAD_REQUEST, 'Internal error! Please try again.') 
+            return handleResponseMessage(status.HTTP_400_BAD_REQUEST, 'Invalid report.')
+        elif request.method == 'DELETE':
             try:
-                serializer.save()
-                return handleResponseMessage(
-                    status.HTTP_200_OK,
-                    'Successfully liked.',
-                    serializer.data)
+                like = models.CommentLike.objects.get(comment=comment, user=request.user)
             except:
-                    return handleResponseMessage(status.HTTP_400_BAD_REQUEST, 'Internal error! Please try again.') 
-        return handleResponseMessage(status.HTTP_400_BAD_REQUEST, 'Invalid report.')
+                return handleResponseMessage(status.HTTP_404_NOT_FOUND,"Couldn't find the corresponding like.")
+            
+            like.delete()
+            finalCommentData = serializers.CommentSerializer(comment, context={ 'user': request.user }).data
+            return handleResponseMessage(
+                status.HTTP_200_OK,
+                'Successfully deleted.',
+                finalCommentData)
     else:
         return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
 
@@ -349,7 +368,7 @@ def postCommentReport(request, parameter):
                     'Successfully reported.',
                     serializer.data)
             except:
-                    return handleResponseMessage(status.HTTP_400_BAD_REQUEST, 'Internal error! Please try again.') 
+                    return handleResponseMessage(status.HTTP_400_BAD_REQUEST, "You've already reported this comment.") 
         return handleResponseMessage(status.HTTP_400_BAD_REQUEST, 'Invalid report.')
     else:
         return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')

@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 import joblib
 
 today = datetime.now(tz=timezone.utc)
-start_date = today - timedelta(hours=4)
+start_date = today - timedelta(days=1)
 
 def start():
     scheduler = BackgroundScheduler()

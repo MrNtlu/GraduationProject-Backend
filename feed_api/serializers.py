@@ -105,8 +105,9 @@ class FeedSerializer(serializers.ModelSerializer):
             locationName=validated_data['locationName']
         )
         
-        for image in images:
-            models.Image.objects.create(feed=feed, image=image)
+        if images is not None:
+            for image in images:
+                models.Image.objects.create(feed=feed, image=image)
             
         return feed
     

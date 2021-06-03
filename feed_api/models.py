@@ -94,7 +94,7 @@ class CommentLike(models.Model):
         ]
         
     def __str__(self):
-        return str(self.id) + ' ' + str(self.user.name) + ' liked ' + str(self.comment.id)
+        return str(self.id) + ' ' + str(self.user.name) + ' liked ' + str(self.comment.id) + ' ' + str(self.comment.message)
 
 
 class CommentReport(models.Model):
