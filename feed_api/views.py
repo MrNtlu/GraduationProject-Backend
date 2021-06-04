@@ -268,7 +268,7 @@ def getComments(request, parameter):
         except EmptyPage:
             return handleResponseMessage(status.HTTP_200_OK, "No item left.")
 
-        serializer = serializers.CommentSerializer(commentPagination, many=True)
+        serializer = serializers.CommentSerializer(commentPagination, many=True, context={ 'user': request.user })
         
         return handleResponseMessage(
             status.HTTP_200_OK,

@@ -131,10 +131,11 @@ class CommentSerializer(serializers.ModelSerializer):
     #likes = VoteObjectRelatedField(many=True, queryset=models.Vote.objects.all(), required=False)
     author = UserProfileSerializer(required=False)
     likes = serializers.SerializerMethodField()
+    is_liked = serializers.SerializerMethodField()
     
     class Meta:
         model = models.Comment
-        fields = ['id','author','message','postedDate','updatedDate', 'isSpam', 'likes'] #'likes'
+        fields = ['id','author','message','postedDate','updatedDate', 'isSpam', 'likes', 'is_liked']
         
     def create(self, validated_data):
         user = self.context['user']
@@ -150,3 +151,7 @@ class CommentSerializer(serializers.ModelSerializer):
     
     def get_likes(self, obj):
         return models.CommentLike.objects.filter(comment=obj, user=obj.author).count()
+    
+    def get_is_liked(self, obj):
+        user_like = models.CommentLike.objects.filter(comment=obj, user=self.context['user'])
+        return user_like.exists()

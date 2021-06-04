@@ -29,7 +29,7 @@ def getComments():
         report = CommentReport.objects.filter(comment=comment).count()
         
         prediction = predictComment(like, report)
-        if int(prediction) == 0:
+        if int(prediction) == 1:
             comment.isSpam = True
             comment.save()
     
