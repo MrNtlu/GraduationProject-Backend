@@ -34,6 +34,26 @@ def getFeed(request, parameter):
         return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
 
 
+@api_view(['DELETE'])
+def deleteFeed(request, parameter):
+    if request.user.is_authenticated:
+        try:
+            feed = models.Feed.objects.get(id=parameter)
+        except:
+            return handleResponseMessage(status.HTTP_404_NOT_FOUND,
+                                         "Couldn't find the corresponding Feed.")
+            
+        if request.user.id == feed.author.id:
+            feed.delete()
+            return handleResponseMessage(
+                    status.HTTP_200_OK,
+                    'Successfully deleted feed.')
+        else:
+            return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'You are not the feed owner, you cannot delete!')
+    else:
+        return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
+
+
 @api_view(['GET'])
 def getUserFeed(request, parameter):
     if request.user.is_authenticated:
@@ -274,6 +294,26 @@ def getComments(request, parameter):
             status.HTTP_200_OK,
             'Successfully queried comments.',
             serializer.data)
+    else:
+        return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
+
+
+@api_view(['DELETE'])
+def deleteComment(request, parameter):
+    if request.user.is_authenticated:
+        try:
+            comment = models.Comment.objects.get(id=parameter)
+        except:
+            return handleResponseMessage(status.HTTP_404_NOT_FOUND,
+                                         "Couldn't find the corresponding Comment.")
+        
+        if request.user.id == comment.author.id:
+            comment.delete()
+            return handleResponseMessage(
+                status.HTTP_200_OK,
+                'Successfully deleted comment.')
+        else:
+            return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'You are not the comment owner, you cannot delete!')
     else:
         return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
 

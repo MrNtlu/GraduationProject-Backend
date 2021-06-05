@@ -30,7 +30,7 @@ def getUserInfo(request, parameter):
         except:
             return handleResponseMessage(status.HTTP_404_NOT_FOUND,'User not found.')
     
-        serializer = serializers.UserProfileSerializer(userProfile)
+        serializer = serializers.UserProfileSerializer(userProfile, context={ 'user': request.user })
         return handleResponseMessage(
             status.HTTP_200_OK,
             'Successfully received User info.',
@@ -78,7 +78,7 @@ def registerUser(request):
             'email': email,
             'name': name,
             'password': password
-        })
+        }, context={ 'user': request.user })
     except:
         return handleResponseMessage(status.HTTP_400_BAD_REQUEST,'Invalid parameters.')
 
@@ -113,18 +113,15 @@ def followUser(request, parameter):
         except:
             return handleResponseMessage(status.HTTP_404_NOT_FOUND,'User not found.')
         
-        # Loggedin Users serializer     
-        serializer = serializers.UserProfileSerializer(userProfile)
-        
         if int(request.user.id) == int(parameter):
             return handleResponseMessage(status.HTTP_400_BAD_REQUEST,
                                          'You cannot follow yourself.')
         else:
-            filteredList = list(filter(lambda item: request.user.id == item['followerUser'], serializer.data.get('followings')))
-
-            if len(filteredList) > 0:
+            # Loggedin Users serializer
+            try:
+                userFollowing = models.UserFollowing.objects.get(followerUser=request.user, user=userProfile)
                 try:
-                    instance = models.UserFollowing.objects.get(pk=filteredList[0].get('id'))
+                    instance = models.UserFollowing.objects.get(pk=userFollowing.id)
                     instance.delete()
                 except ObjectDoesNotExist:
                     return handleResponseMessage(status.HTTP_404_NOT_FOUND,
@@ -132,15 +129,17 @@ def followUser(request, parameter):
                 except:
                     return handleResponseMessage(status.HTTP_404_NOT_FOUND,
                                                  "Error occured while deleting the object.")
-
+                
+                finalUserData = serializers.UserProfileSerializer(userProfile, context={ 'user': request.user }).data
                 return handleResponseMessage(status.HTTP_200_OK,
                                             f'Successfully unfollowed',
-                                            f'{request.user.name} unfollowed {userProfile.name}')
-            else:
-                following = models.UserFollowing.objects.create(user=userProfile, followerUser=request.user)
+                                            finalUserData)
+            except:
+                models.UserFollowing.objects.create(user=userProfile, followerUser=request.user)
+                finalUserData = serializers.UserProfileSerializer(userProfile, context={ 'user': request.user }).data
                 return handleResponseMessage(status.HTTP_200_OK,
                                                 'Successfully Followed',
-                                                f'{request.user.name} follows {userProfile.name}')
+                                                finalUserData)
 
     else:
         return handleResponseMessage(status.HTTP_401_UNAUTHORIZED,'Authentication error.')
@@ -165,7 +164,7 @@ def getUserFollowers(request, parameter):
         except EmptyPage:
             return handleResponseMessage(status.HTTP_200_OK, "No item left.")
         
-        serializer = serializers.FollowerSerializer(followerPagination, many=True)
+        serializer = serializers.FollowerSerializer(followerPagination, many=True, context={ 'user': request.user })
 
         return handleResponseMessage(
             status.HTTP_200_OK,
@@ -194,7 +193,7 @@ def getUserFollowings(request, parameter):
         except EmptyPage:
             return handleResponseMessage(status.HTTP_200_OK, "No item left.")
         
-        serializer = serializers.FollowerSerializer(followingsPagination, many=True)
+        serializer = serializers.FollowingSerializer(followingsPagination, many=True, context={ 'user': request.user })
         
         return handleResponseMessage(
             status.HTTP_200_OK,

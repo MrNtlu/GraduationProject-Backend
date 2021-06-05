@@ -10,10 +10,11 @@ class UserProfileSerializer(serializers.ModelSerializer):
     follower_count = serializers.SerializerMethodField()
     following_count = serializers.SerializerMethodField()
     post_count = serializers.SerializerMethodField()
+    is_following = serializers.SerializerMethodField()
 
     class Meta:
         model = models.UserProfile
-        fields = ('id','image', 'email', 'username', 'name', 'password', 'follower_count', 'following_count', 'post_count') #'followings','followers',
+        fields = ('id','image', 'email', 'username', 'name', 'password', 'follower_count', 'following_count', 'post_count', 'is_following')
         extra_kwargs = {
             'image':{
               'required': False  
@@ -32,6 +33,9 @@ class UserProfileSerializer(serializers.ModelSerializer):
     
     def get_post_count(self, obj):
         return Feed.objects.filter(author=obj).count()
+    
+    def get_is_following(self, obj):
+        return models.UserFollowing.objects.filter(followerUser=self.context['user'], user=obj).exists()
     
     def create(self, validate_data):
         user = models.UserProfile.objects.create_user(
@@ -151,13 +155,23 @@ class ChangePasswordSerializer(serializers.ModelSerializer):
         return instance
     
 class FollowerSerializer(serializers.ModelSerializer):
-    user = UserProfileSerializer(source="followerUser")
+    user = serializers.SerializerMethodField()#UserProfileSerializer(source="followerUser", context={ 'user': self.context.user })
+    class Meta:
+        model = models.UserFollowing
+        fields = ("id", "user", "created")
+    
+    def get_user(self, obj):
+        user = models.UserProfile.objects.get(id=obj.followerUser.id)
+        serializer = UserProfileSerializer(user, context={ 'user': self.context['user'] })
+        return serializer.data
+    
+class FollowingSerializer(serializers.ModelSerializer):
+    user = serializers.SerializerMethodField() #user = UserProfileSerializer()
     class Meta:
         model = models.UserFollowing
         fields = ("id", "user", "created")
         
-class FollowingSerializer(serializers.ModelSerializer):
-    user = UserProfileSerializer()
-    class Meta:
-        model = models.UserFollowing
-        fields = ("id", "user", "created")
+    def get_user(self, obj):
+        user = models.UserProfile.objects.get(id=obj.user.id)
+        serializer = UserProfileSerializer(user, context={ 'user': self.context['user'] })
+        return serializer.data
