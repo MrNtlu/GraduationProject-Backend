@@ -1,3 +1,4 @@
+from auth_api.auth import TokenAuthGet
 from django.core import paginator
 from rest_framework.response import Response
 from rest_framework.authentication import TokenAuthentication
@@ -264,11 +265,16 @@ class PaginationModel(PageNumberPagination):
 class UserProfileViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.UserProfileSerializer
     queryset = models.UserProfile.objects.all()
-    authentication_classes = (TokenAuthentication,)
+    authentication_classes = (TokenAuthGet,)
     permission_classes = (permissions.UpdateOwnProfile,)
     filter_backends = (filters.SearchFilter,)
     search_fields = ('username', 'name',)
     paginator = PaginationModel()
+    
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['user'] = self.request.user
+        return context
 
 
 class ChangePasswordView(generics.UpdateAPIView):
