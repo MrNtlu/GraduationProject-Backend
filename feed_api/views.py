@@ -126,7 +126,7 @@ def getFeedByLocation(request):
             nearbyFeeds = models.Feed.objects.all() \
             .annotate(distance=distanceRawSQL)\
             .order_by('distance')
-            nearbyFeeds = nearbyFeeds.filter(distance__lt=distance).order_by("-postedDate")
+            nearbyFeeds = nearbyFeeds.filter(distance__lt=(int(distance) / 1000)).order_by("-postedDate")
             
             page = request.GET.get('page')
             paginator = Paginator(nearbyFeeds, FEED_PAGINATION_LIMIT)
