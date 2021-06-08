@@ -15,7 +15,7 @@ def start():
 def getFeeds():
     for feed in Feed.objects.filter(postedDate__range=[start_date, today]):
         upvote = FeedVote.objects.filter(feed=feed, vote=1).count()
-        downvote = FeedVote.objects.filter(feed=feed, vote=1).count()
+        downvote = FeedVote.objects.filter(feed=feed, vote=-1).count()
         report = Report.objects.filter(feed=feed).count()
         
         prediction = predictFeed(upvote, downvote, report) 
